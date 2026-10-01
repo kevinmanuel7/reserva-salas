@@ -1,0 +1,26 @@
+# Android / Gradle
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+captures/
+.cxx/
+*.apk
+*.aab
+
+# Java / Spring Boot
+target/
+*.class
+*.log
+
+# Llaves y secretos: NUNCA al repositorio
+*.jks
+*.keystore
+keystore.properties
+.env
+application-local.properties
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
