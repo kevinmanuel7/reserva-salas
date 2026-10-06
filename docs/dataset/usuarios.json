@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "nombre": "Coordinador Ficticio Uno",
+    "email": "coordinador1@duocuc.test",
+    "rol": "COORDINADOR"
+  },
+  {
+    "id": 2,
+    "nombre": "Coordinador Ficticio Dos",
+    "email": "coordinador2@duocuc.test",
+    "rol": "COORDINADOR"
+  },
+  {
+    "id": 3,
+    "nombre": "Relator Ficticio Uno",
+    "email": "relator1@duocuc.test",
+    "rol": "RELATOR"
+  },
+  {
+    "id": 4,
+    "nombre": "Relator Ficticio Dos",
+    "email": "relator2@duocuc.test",
+    "rol": "RELATOR"
+  },
+  {
+    "id": 5,
+    "nombre": "Relator Ficticio Tres",
+    "email": "relator3@duocuc.test",
+    "rol": "RELATOR"
+  },
+  {
+    "id": 6,
+    "nombre": "Relator Ficticio Cuatro",
+    "email": "relator4@duocuc.test",
+    "rol": "RELATOR"
+  },
+  {
+    "id": 7,
+    "nombre": "Relator Ficticio Cinco",
+    "email": "relator5@duocuc.test",
+    "rol": "RELATOR"
+  }
+]
