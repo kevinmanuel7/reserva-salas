@@ -53,6 +53,10 @@ crear clases, tablas o endpoints.
 
 ## 5. Reglas de negocio (decididas con el mandante — no cambiarlas sin aviso)
 
+La edición de horarios y equipamiento, los comentarios de equipamiento, el check-in
+con QR y el estado no presentado todavía no tienen su diseño detallado (campos,
+endpoints y pantallas) en `docs/plan-proyecto.md`. Antes de implementarlos, preguntar.
+
 ### Perfiles
 - Solo existen dos perfiles: **relator** y **coordinador**.
 - El **coordinador** es el administrador. Puede:

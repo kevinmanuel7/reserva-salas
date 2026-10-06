@@ -23,27 +23,32 @@ las reglas de negocio, de seguridad y de Git siguen siendo las de la raíz.
 ## 2. Versiones de Android
 
 - `minSdk = 26` (Android 8.0). La app debe funcionar en teléfonos antiguos.
-  Esta decisión reemplaza la versión Android 6.0 que aparece en `docs/plan-proyecto.md`.
 - Se eligió Android 8.0 porque desde esa versión está disponible `java.time`
   (por ejemplo `LocalDate` y `LocalTime`) sin configuración adicional.
 - Antes de usar una función de Android, verificar que exista en Android 8.0.
   Si no existe, avisar en vez de subir el `minSdk`.
-- La app se prueba en el teléfono Oppo del equipo y en un emulador con Android 8.0.
+- La app se prueba en un teléfono con Android 12 (recursos limitados), un emulador
+  reciente y un emulador con Android 8.0 para probar la versión mínima.
 
 ## 3. Estructura del código
 
 Paquete base: `cl.duoc.reservasalas.app`
 
-| Paquete           | Contenido                                                          |
-|-------------------|--------------------------------------------------------------------|
-| `model`           | Clases Sala, Usuario, Bloque y Reserva, con los campos exactos de la sección 4 del plan. |
-| `data/remote`     | Interfaces de Retrofit.                                            |
-| `data/local`      | Room (entidades, DAO, base de datos) y DataStore.                  |
-| `data/repository` | Repositorios: único punto desde donde los ViewModel piden datos.   |
-| `viewmodel`       | Un ViewModel por pantalla.                                         |
-| `ui/<pantalla>`   | Una carpeta por pantalla del contrato de pantallas (sección 6 del plan), con su `...Screen.kt`. |
-| `ui/navigation`   | Rutas, grafo de navegación y barra inferior.                       |
-| `ui/theme`        | Colores (modo claro y oscuro), tipografía y formas.                |
+```
+cl.duoc.reservasalas.app/
+├── model/          ← Sala, Usuario, Bloque, Reserva (campos exactos de la sección 4 del plan)
+├── data/
+│   ├── local/      ← Room (entidades, DAO, base de datos) y DataStore
+│   ├── remote/     ← interfaces de Retrofit
+│   └── repository/ ← repositorios: único punto desde donde los ViewModel piden datos
+├── viewmodel/      ← un ViewModel por pantalla
+├── ui/
+│   ├── screens/    ← las 8 pantallas del contrato de pantallas (sección 6 del plan)
+│   ├── components/ ← piezas reutilizables
+│   ├── navigation/ ← rutas, grafo de navegación y barra inferior
+│   └── theme/      ← colores (modo claro y oscuro), tipografía y formas
+└── notifications/  ← recordatorios locales
+```
 
 Reglas de MVVM:
 - Una pantalla (`@Composable`) **solo muestra datos y avisa acciones** al ViewModel.
@@ -75,12 +80,17 @@ Reglas de MVVM:
 - Los errores del servidor se convierten en el `mensaje` que muestra la interfaz.
   Nunca se muestra el error técnico al usuario.
 
-## 5. Funcionalidades con decisiones pendientes
+## 5. Recordatorios y funcionalidades pendientes
+
+- **Recordatorio:** notificación local, programada en el teléfono, 15 minutos antes
+  del inicio de cada reserva (sala, horario y actividad). Se elimina si la reserva se
+  cancela. Se usa WorkManager o AlarmManager (ver Fase 6 del plan). Desde Android 13
+  se pide el permiso de notificaciones.
+
+### Decisiones pendientes
 
 No implementar estas partes sin que la decisión esté escrita aquí:
 
-- **Recordatorio 15 minutos antes de la reserva:** PENDIENTE decidir si se programa
-  en el teléfono o lo envía el backend.
 - **Aviso al coordinador cuando un relator hace check-in:** PENDIENTE decidir cómo
   llega la notificación al teléfono del coordinador.
 - **Lectura del código QR para el check-in:** PENDIENTE elegir librería.
