@@ -8,12 +8,14 @@ las reglas de negocio, de seguridad y de Git siguen siendo las de la raíz.
 ## 1. Tecnologías
 
 - Lenguaje: **Kotlin**. No usar Java en la app.
-- Interfaz: **Jetpack Compose**. No usar archivos XML de diseño (layouts) ni Fragments.
+- Interfaz: **Jetpack Compose** con Material Design 3. No usar archivos XML de
+  diseño (layouts) ni Fragments.
 - Navegación entre pantallas: Navigation Compose.
 - Arquitectura: **MVVM** (Model – View – ViewModel), explicada en la sección 3.
 - Llamadas al backend: Retrofit, con JSON.
-- Base de datos local del teléfono: Room. Qué datos se guardan localmente: PENDIENTE.
-- Token de sesión (JWT): se guarda en DataStore.
+- Base de datos local del teléfono: Room. Es una copia local: los repositorios piden
+  al servidor, guardan la respuesta en Room y, sin conexión, leen de Room.
+- Sesión (token JWT y usuario): se guarda en DataStore.
 - Inyección de dependencias: manual, sin Hilt, para mantener el proyecto simple.
 - Las versiones de las librerías están en `gradle/libs.versions.toml`.
   No agregar librerías nuevas sin explicar para qué se necesitan y esperar aprobación.
@@ -21,10 +23,12 @@ las reglas de negocio, de seguridad y de Git siguen siendo las de la raíz.
 ## 2. Versiones de Android
 
 - `minSdk = 26` (Android 8.0). La app debe funcionar en teléfonos antiguos.
+  Esta decisión reemplaza la versión Android 6.0 que aparece en `docs/plan-proyecto.md`.
+- Se eligió Android 8.0 porque desde esa versión está disponible `java.time`
+  (por ejemplo `LocalDate` y `LocalTime`) sin configuración adicional.
 - Antes de usar una función de Android, verificar que exista en Android 8.0.
   Si no existe, avisar en vez de subir el `minSdk`.
-- La app se prueba también en un teléfono real con Android 12, para medir el
-  rendimiento en equipos limitados.
+- La app se prueba en el teléfono Oppo del equipo y en un emulador con Android 8.0.
 
 ## 3. Estructura del código
 
@@ -32,41 +36,44 @@ Paquete base: `cl.duoc.reservasalas.app`
 
 | Paquete           | Contenido                                                          |
 |-------------------|--------------------------------------------------------------------|
-| `data/remote`     | Interfaces de Retrofit y DTO que llegan desde el backend.          |
+| `model`           | Clases Sala, Usuario, Bloque y Reserva, con los campos exactos de la sección 4 del plan. |
+| `data/remote`     | Interfaces de Retrofit.                                            |
 | `data/local`      | Room (entidades, DAO, base de datos) y DataStore.                  |
 | `data/repository` | Repositorios: único punto desde donde los ViewModel piden datos.   |
-| `domain/model`    | Clases de la app (Usuario, Espacio, Reserva) usadas por la interfaz. |
-| `ui/<funcionalidad>` | Una carpeta por funcionalidad: pantallas (`...Screen.kt`) y su `...ViewModel.kt`. |
-| `ui/navigation`   | Rutas y grafo de navegación.                                       |
-| `ui/theme`        | Colores, tipografía y tema de la app.                              |
-
-Funcionalidades previstas en `ui/`: `login`, `espacios`, `reservas`, `checkin`, `admin`.
+| `viewmodel`       | Un ViewModel por pantalla.                                         |
+| `ui/<pantalla>`   | Una carpeta por pantalla del contrato de pantallas (sección 6 del plan), con su `...Screen.kt`. |
+| `ui/navigation`   | Rutas, grafo de navegación y barra inferior.                       |
+| `ui/theme`        | Colores (modo claro y oscuro), tipografía y formas.                |
 
 Reglas de MVVM:
 - Una pantalla (`@Composable`) **solo muestra datos y avisa acciones** al ViewModel.
   No llama a Retrofit, a Room ni a repositorios.
-- El **ViewModel** guarda el estado de la pantalla y llama a los repositorios.
+- El **ViewModel** guarda el estado de la pantalla (cargando, con datos, vacío,
+  error, guardando) y llama a los repositorios.
 - El **repositorio** decide si los datos vienen del backend o de Room.
-- Los DTO del backend no se usan directamente en la interfaz: se convierten a las
-  clases de `domain/model`.
+- Mientras el backend no esté listo, los repositorios entregan el dataset desde
+  memoria (repositorio falso), según las fases de la sección 8 del plan.
 
 ## 4. Conexión con el backend
 
 | Microservicio | Puerto |
 |---------------|--------|
-| usuarios      | 8081   |
-| reservas      | 8082   |
-| espacios      | 8083   |
+| ms-usuarios   | 8081   |
+| ms-salas      | 8082   |
+| ms-reservas   | 8083   |
 
+- Retrofit se configura con una conexión por microservicio.
 - Las URL base no se escriben fijas dentro del código: se definen como
   `buildConfigField` en `app/build.gradle.kts`.
 - En el emulador, el computador se alcanza con la IP `10.0.2.2`.
   En un teléfono real se usa la IP local del computador en la red Wi-Fi.
-- Toda petición, salvo registro e inicio de sesión, envía el encabezado
-  `Authorization: Bearer <token>`.
-- Si el backend responde 401, se borra el token y se vuelve a la pantalla de login.
-- Mientras se espera una respuesta, la pantalla muestra un indicador de carga.
-  Si hay error, muestra un mensaje entendible para el usuario, nunca el error técnico.
+- En desarrollo, el tráfico `http` sin cifrar se permite solo para la IP local,
+  mediante la configuración de seguridad de red de la app.
+- Toda petición, salvo `POST /auth/login`, envía el encabezado
+  `Authorization: Bearer <token>`, agregado automáticamente.
+- Si el backend responde 401, se borra la sesión y se vuelve a la pantalla de login.
+- Los errores del servidor se convierten en el `mensaje` que muestra la interfaz.
+  Nunca se muestra el error técnico al usuario.
 
 ## 5. Funcionalidades con decisiones pendientes
 
@@ -93,11 +100,11 @@ raíz, al crear o modificar código de la app:
 
 Ejecutar dentro de `app-android/`. En Windows usar `gradlew.bat` en lugar de `./gradlew`.
 
-| Acción                          | Comando                    |
-|---------------------------------|----------------------------|
-| Compilar la app                 | `./gradlew assembleDebug`  |
-| Ejecutar las pruebas unitarias  | `./gradlew test`           |
-| Instalar en el dispositivo conectado | `./gradlew installDebug` |
+| Acción                               | Comando                    |
+|--------------------------------------|----------------------------|
+| Compilar la app                      | `./gradlew assembleDebug`  |
+| Ejecutar las pruebas unitarias       | `./gradlew test`           |
+| Instalar en el dispositivo conectado | `./gradlew installDebug`   |
 
 Antes de dar una tarea por terminada, `./gradlew assembleDebug` y `./gradlew test`
 deben terminar sin errores.

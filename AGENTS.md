@@ -22,11 +22,11 @@ documentación importan tanto como las funcionalidades.
 
 ## 2. Estructura del repositorio
 
-| Carpeta        | Contenido                                              |
-|----------------|--------------------------------------------------------|
-| `app-android/` | App Android en Kotlin.                                 |
-| `backend/`     | Microservicios en Java con Spring Boot.                |
-| `docs/`        | Documentación del proyecto (decisiones, diagramas, API). |
+| Carpeta        | Contenido                                                        |
+|----------------|------------------------------------------------------------------|
+| `app-android/` | App Android en Kotlin.                                           |
+| `backend/`     | Microservicios en Java con Spring Boot.                          |
+| `docs/`        | `plan-proyecto.md` (plan completo), `dataset/`, `postman/` y `bocetos/`. |
 
 ## 3. Tecnologías
 
@@ -36,7 +36,22 @@ documentación importan tanto como las funcionalidades.
 - La app debe soportar una versión mínima de Android baja, para funcionar también en
   teléfonos antiguos. El número exacto está en `app-android/AGENTS.md`.
 
-## 4. Reglas de negocio (decididas con el mandante — no cambiarlas sin aviso)
+## 4. Modelo de datos y contratos
+
+El detalle está en `docs/plan-proyecto.md`: modelo de datos (sección 4),
+Contrato 1 de la API (sección 5), contrato de pantallas (sección 6),
+dataset y casos de prueba (sección 7) y fases (sección 8). Leerlo antes de
+crear clases, tablas o endpoints.
+
+- Entidades: Sala, Usuario, Bloque y Reserva.
+- Los nombres de campo son idénticos en MySQL, en el JSON de la API y en Kotlin,
+  respetando mayúsculas y minúsculas (`bloqueInicio`, nunca `bloque_inicio`).
+- Fechas: texto `AAAA-MM-DD`. Horas: texto `HH:MM` de 24 horas, siempre con dos dígitos.
+- Valores de listas cerradas (`tipo`, `rol`, `estado`): MAYÚSCULAS y sin tildes.
+- El `id` lo asigna la base de datos.
+- Si este archivo y el plan se contradicen, preguntar antes de programar.
+
+## 5. Reglas de negocio (decididas con el mandante — no cambiarlas sin aviso)
 
 ### Perfiles
 - Solo existen dos perfiles: **relator** y **coordinador**.
@@ -71,18 +86,18 @@ documentación importan tanto como las funcionalidades.
 ### Fuera de alcance (NO implementar todavía)
 - Sistema de calificación de relatores.
 
-## 5. Equipo y responsabilidades
+## 6. Equipo y responsabilidades
 
 | Integrante | Responsabilidad                                                        |
 |------------|------------------------------------------------------------------------|
-| Kevin      | Líder, documentación, microservicio de usuarios/login e integración app ↔ backend. |
-| Bastián    | Backend.                                                               |
+| Kevin      | Líder, documentación, microservicio ms-usuarios e integración app ↔ backend. |
+| Bastián    | Backend: microservicios ms-salas y ms-reservas.                        |
 | Simón      | Interfaz de la app.                                                    |
 
 Antes de modificar código de un área que no corresponde a quien está trabajando,
 el agente debe avisarlo y pedir confirmación.
 
-## 6. Cómo debe trabajar el agente
+## 7. Cómo debe trabajar el agente
 
 1. **Plan primero.** Antes de escribir código, proponer un plan: qué archivos se crean
    o modifican y por qué. Esperar aprobación.
@@ -93,10 +108,10 @@ el agente debe avisarlo y pedir confirmación.
    sintaxis debe darse por conocida.
 4. **Verificar.** Compilar y ejecutar las pruebas de la carpeta modificada antes de dar
    la tarea por terminada.
-5. **No inventar reglas de negocio.** Si algo no está definido en este archivo,
-   preguntar en vez de suponer.
+5. **No inventar reglas de negocio.** Si algo no está definido en este archivo ni en
+   `docs/plan-proyecto.md`, preguntar en vez de suponer.
 
-## 7. Seguridad
+## 8. Seguridad
 
 - **El repositorio es público.** Nunca escribir contraseñas, claves de base de datos,
   tokens ni claves de API en el código, en la configuración ni en estos archivos.
@@ -104,16 +119,25 @@ el agente debe avisarlo y pedir confirmación.
 - Nunca guardar contraseñas de usuarios en texto plano; siempre guardarlas cifradas
   con un algoritmo de hash seguro.
 
-## 8. Git
+## 9. Git
 
-- Rama principal: `main`. No hacer commits directos a `main`.
-- Cada tarea se trabaja en una rama propia: `feature/descripcion-corta`
-  (ejemplo: `feature/login-backend`).
-- Los cambios entran a `main` mediante Pull Request.
+No se usan Pull Requests. Se trabaja con tres niveles de ramas:
+
+| Rama                      | Para qué                                                          |
+|---------------------------|-------------------------------------------------------------------|
+| `main`                    | Versión estable. Recibe `develop` solo cuando el proyecto esté funcionando y el equipo lo decida. |
+| `develop`                 | Integración y pruebas generales de todo el equipo.                |
+| `feature/descripcion-corta` | Una rama por tarea (ejemplo: `feature/login-backend`). Se crea desde `develop`. |
+
+- Al terminar una tarea y comprobar que compila, la rama `feature/...` se fusiona
+  en `develop`.
+- Nunca se trabaja directamente sobre `develop` ni sobre `main`.
+- El agente **nunca** hace `merge` ni `push` a `develop` o a `main` sin pedir
+  confirmación.
 - Mensajes de commit en español, en presente y describiendo el cambio
   (ejemplo: `Agrega entidad Usuario y su repositorio`).
 
-## 9. Documentación
+## 10. Documentación
 
 - Toda decisión nueva del mandante o del equipo se registra en `docs/`.
-- Si una decisión cambia una regla de la sección 4, actualizar también este archivo.
+- Si una decisión cambia una regla de la sección 5, actualizar también este archivo.

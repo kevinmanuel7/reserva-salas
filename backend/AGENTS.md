@@ -14,25 +14,28 @@ Spring Boot independiente, en su propia carpeta:**
 backend/
 ├── AGENTS.md
 ├── CLAUDE.md
-├── usuarios/        ← microservicio de usuarios y login
-├── reservas/        ← microservicio de reservas y check-in
-└── espacios/        ← microservicio de espacios, horarios y equipamiento
+├── ms-usuarios/     ← login y usuarios
+├── ms-salas/        ← catálogo de salas
+└── ms-reservas/     ← bloques, reservas y validación de cruces
 ```
 
-| Microservicio | Carpeta     | Responsable | Puerto local | Base de datos MySQL |
-|---------------|-------------|-------------|--------------|---------------------|
-| Usuarios      | `usuarios/` | Kevin       | 8081         | `usuarios_db`       |
-| Reservas      | `reservas/` | Bastián     | 8082         | `reservas_db`       |
-| Espacios      | `espacios/` | Bastián     | 8083         | `espacios_db`       |
+| Microservicio | Carpeta        | Responsable | Puerto local | Base de datos MySQL |
+|---------------|----------------|-------------|--------------|---------------------|
+| ms-usuarios   | `ms-usuarios/` | Kevin       | 8081         | `bd_usuarios`       |
+| ms-salas      | `ms-salas/`    | Bastián     | 8082         | `bd_salas`          |
+| ms-reservas   | `ms-reservas/` | Bastián     | 8083         | `bd_reservas`       |
 
 - Un microservicio **no** debe leer ni escribir directamente en la base de datos de
-  otro. Si necesita datos de otro microservicio, los pide por su API REST.
+  otro. Si necesita datos de otro microservicio, los pide por su API REST
+  (ejemplo: `ms-reservas` consulta a `ms-salas` para verificar que la sala existe).
 - No crear un microservicio nuevo sin que esté agregado a esta tabla.
 
 ## 2. Tecnologías
 
 - Java con Spring Boot. Las versiones exactas están en el `pom.xml` de cada
   microservicio; no cambiarlas sin aviso.
+- Dependencias base de cada proyecto: Spring Web, Spring Data JPA, MySQL Driver,
+  Validation y Spring Security.
 - Herramienta de construcción: **Maven**, usando el wrapper incluido en cada proyecto
   (`mvnw` / `mvnw.cmd`). No depender de un Maven instalado en el computador.
 - Base de datos: **MySQL**, con Spring Data JPA.
@@ -40,8 +43,9 @@ backend/
 
 ## 3. Estructura interna de cada microservicio
 
-Paquete base: `cl.duoc.reservasalas.<nombre-del-microservicio>`
-(ejemplo: `cl.duoc.reservasalas.usuarios`).
+Paquete base: `cl.duoc.reservasalas.<nombre>` (ejemplo: `cl.duoc.reservasalas.usuarios`).
+El paquete no lleva el prefijo `ms-` porque Java no permite guiones en los nombres
+de paquete.
 
 Dentro del paquete base, separar por capas:
 
@@ -57,14 +61,19 @@ Dentro del paquete base, separar por capas:
 
 ## 4. Reglas de la API
 
-- Todas las rutas comienzan con `/api/` (ejemplo: `/api/usuarios`).
+- Las rutas, los cuerpos, las respuestas y el formato de error son los del
+  Contrato 1 (sección 5 de `docs/plan-proyecto.md`). No crear rutas fuera del
+  contrato sin aviso.
+- Los nombres de campo del JSON son exactamente los del modelo de datos
+  (sección 4 del plan).
 - Usar los métodos HTTP según su significado: `GET` consulta, `POST` crea,
-  `PUT` actualiza, `DELETE` elimina.
-- Responder con el código HTTP correcto (200, 201, 400, 401, 403, 404, 409, 500)
-  y, cuando hay error, con un JSON que incluya un mensaje entendible.
+  `PUT` modifica.
+- Responder con el código HTTP que indica el contrato (200, 201, 400, 401, 403,
+  404, 409). Un cruce de horario responde `409`.
+- Cada microservicio tiene un manejador global de errores que responde siempre con
+  el formato de error del contrato.
 - Validar los datos de entrada en los DTO (Bean Validation) antes de llegar al servicio.
-- Cada endpoint nuevo se documenta en `docs/` (ruta, método, cuerpo de entrada,
-  respuesta y errores posibles). La app Android depende de esa documentación.
+- Al arrancar, cada microservicio carga sus datos desde `docs/dataset/`.
 
 ## 5. Configuración y secretos
 
@@ -75,9 +84,9 @@ Dentro del paquete base, separar por capas:
   (ejemplo: `spring.datasource.password=${DB_PASSWORD}`), nunca valores reales.
 - Incluir un archivo `.env.example` con los nombres de las variables y valores vacíos.
 
-## 6. Microservicio de usuarios (`usuarios/`)
+## 6. Microservicio de usuarios (`ms-usuarios/`)
 
-- Gestiona el registro, el inicio de sesión y los datos de los usuarios.
+- Gestiona el inicio de sesión y los datos de los usuarios.
 - Perfiles posibles: `RELATOR` y `COORDINADOR` (no existen otros).
 - Las contraseñas se guardan con hash BCrypt. Nunca en texto plano y nunca se
   devuelven en una respuesta.
@@ -85,23 +94,23 @@ Dentro del paquete base, separar por capas:
 
 ## 7. Autenticación con JWT (aplica a los tres microservicios)
 
-- Al iniciar sesión correctamente, `usuarios` devuelve un token JWT firmado que
-  contiene el id del usuario y su perfil (`RELATOR` o `COORDINADOR`).
+- Al iniciar sesión correctamente con `POST /auth/login`, `ms-usuarios` devuelve un
+  token JWT firmado que contiene el id, el nombre y el rol del usuario.
 - La app envía ese token en cada petición, en el encabezado HTTP
   `Authorization: Bearer <token>`.
-- `reservas` y `espacios` validan la firma del token por su cuenta, sin llamar a
-  `usuarios` en cada petición.
+- `ms-salas` y `ms-reservas` validan la firma del token por su cuenta, sin llamar a
+  `ms-usuarios` en cada petición.
 - La clave de firma se lee desde la variable de entorno `JWT_SECRET` y debe ser la
   misma en los tres microservicios. Nunca se escribe en el código.
 - El tiempo de expiración del token se lee desde la variable de entorno
   `JWT_EXPIRATION`.
-- Las acciones de administración (editar horarios, equipamiento y comentarios)
-  solo se permiten si el token tiene el perfil `COORDINADOR`.
-- Rutas públicas (sin token): solo registro e inicio de sesión de `usuarios`.
+- Las acciones de administración solo se permiten si el token tiene el rol
+  `COORDINADOR`; si no, se responde `403`.
+- Única ruta pública (sin token): `POST /auth/login`.
 
 ## 8. Comandos
 
-Ejecutar dentro de la carpeta del microservicio (ejemplo: `backend/usuarios/`).
+Ejecutar dentro de la carpeta del microservicio (ejemplo: `backend/ms-usuarios/`).
 En Windows usar `mvnw.cmd` en lugar de `./mvnw`.
 
 | Acción               | Comando                    |
@@ -113,4 +122,6 @@ En Windows usar `mvnw.cmd` en lugar de `./mvnw`.
 ## 9. Pruebas
 
 - Toda lógica nueva en `service` debe tener pruebas unitarias.
+- Los casos de prueba de la API están en la sección 7 del plan y en la colección de
+  Postman de `docs/postman/`.
 - Antes de dar una tarea por terminada, `./mvnw test` debe pasar sin errores.
