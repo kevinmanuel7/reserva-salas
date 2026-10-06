@@ -84,6 +84,17 @@ Dentro del paquete base, separar por capas:
   (ejemplo: `spring.datasource.password=${DB_PASSWORD}`), nunca valores reales.
 - Incluir un archivo `.env.example` con los nombres de las variables y valores vacíos.
 
+### Nombres de tablas y columnas (los tres microservicios)
+
+- En `application.properties` de cada microservicio usar:
+  `spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl`.
+  Sin esto, Spring cambia `bloqueInicio` por `bloque_inicio` en MySQL y rompe la
+  regla de nombres idénticos del modelo de datos.
+- Cada entidad declara el nombre de su tabla de forma explícita y en minúsculas,
+  con `@Table(name = "...")` (ejemplo: `@Table(name = "usuario")`). Con la estrategia
+  anterior, sin `@Table` la tabla se llamaría `Usuario`, y en MySQL sobre Linux los
+  nombres de tabla distinguen mayúsculas.
+
 ## 6. Microservicio de usuarios (`ms-usuarios/`)
 
 - Gestiona el inicio de sesión y los datos de los usuarios.
