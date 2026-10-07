@@ -524,6 +524,8 @@ Toda respuesta de error (400, 401, 403, 404, 409 y 500) tiene esta misma forma:
 | CRUCE_HORARIO          | 409  | La sala ya está ocupada en alguno de esos bloques |
 | ERROR_INTERNO          | 500  | Error inesperado del servidor                     |
 
+Las rutas que no existen (404), los métodos no permitidos (405) y los formatos que no son JSON (415) conservan su código HTTP y responden con codigo: "DATOS_INVALIDOS".
+
 ### Ejemplos completos
 
 **Login.** La app envía POST /auth/login:
