@@ -70,9 +70,15 @@ Reglas de MVVM:
 - Retrofit se configura con una conexión por microservicio.
 - Las URL base no se escriben fijas dentro del código: se definen como
   `buildConfigField` en `app/build.gradle.kts`.
-- En el emulador, el computador se alcanza con la IP `10.0.2.2`.
-  En un teléfono real se usa la IP local del computador en la red Wi-Fi.
-- En desarrollo, el tráfico `http` sin cifrar se permite solo para la IP local,
+- El dispositivo llega al backend del computador con `adb reverse`, que redirige un
+  puerto del dispositivo al mismo puerto del computador:
+  `adb reverse tcp:8081 tcp:8081`.
+- `adb reverse` funciona igual en un teléfono físico conectado por USB y en un
+  emulador. Por eso la URL de ms-usuarios en la app es `http://localhost:8081` en
+  ambos casos, y no se usa `10.0.2.2`.
+- El comando `adb reverse` se ejecuta cada vez que se conecta el teléfono o se
+  inicia el emulador.
+- En desarrollo, el tráfico `http` sin cifrar se permite solo para `localhost`,
   mediante la configuración de seguridad de red de la app.
 - Toda petición, salvo `POST /auth/login`, envía el encabezado
   `Authorization: Bearer <token>`, agregado automáticamente.
@@ -108,13 +114,13 @@ raíz, al crear o modificar código de la app:
 
 ## 7. Comandos
 
-Ejecutar dentro de `app-android/`. En Windows usar `gradlew.bat` en lugar de `./gradlew`.
+Ejecutar dentro de `app-android/` (Windows, PowerShell).
 
-| Acción                               | Comando                    |
-|--------------------------------------|----------------------------|
-| Compilar la app                      | `./gradlew assembleDebug`  |
-| Ejecutar las pruebas unitarias       | `./gradlew test`           |
-| Instalar en el dispositivo conectado | `./gradlew installDebug`   |
+| Acción                               | Comando                         |
+|--------------------------------------|---------------------------------|
+| Compilar la app                      | `.\gradlew.bat assembleDebug`   |
+| Ejecutar las pruebas unitarias       | `.\gradlew.bat test`            |
+| Instalar en el teléfono conectado    | `.\gradlew.bat installDebug`    |
 
-Antes de dar una tarea por terminada, `./gradlew assembleDebug` y `./gradlew test`
-deben terminar sin errores.
+Antes de dar una tarea por terminada, `.\gradlew.bat assembleDebug` y
+`.\gradlew.bat test` deben terminar sin errores.
