@@ -499,7 +499,7 @@ POST /reservas **no recibe usuarioId**: el servidor lo obtiene del token. Si la 
 
 ### Formato estándar de errores
 
-Toda respuesta de error (400, 401, 403, 404 y 409) tiene esta misma forma:
+Toda respuesta de error (400, 401, 403, 404, 409 y 500) tiene esta misma forma:
 
 {  
 "codigo": "CRUCE_HORARIO",  
@@ -522,6 +522,7 @@ Toda respuesta de error (400, 401, 403, 404 y 409) tiene esta misma forma:
 | SALA_NO_ENCONTRADA     | 404  | No existe la sala pedida                          |
 | RESERVA_NO_ENCONTRADA  | 404  | No existe la reserva pedida                       |
 | CRUCE_HORARIO          | 409  | La sala ya está ocupada en alguno de esos bloques |
+| ERROR_INTERNO          | 500  | Error inesperado del servidor                     |
 
 ### Ejemplos completos
 

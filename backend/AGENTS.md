@@ -113,11 +113,43 @@ Dentro del paquete base, separar por capas:
   `ms-usuarios` en cada petición.
 - La clave de firma se lee desde la variable de entorno `JWT_SECRET` y debe ser la
   misma en los tres microservicios. Nunca se escribe en el código.
+  - Se usa **como texto en UTF-8** (`secreto.getBytes(StandardCharsets.UTF_8)`),
+    **no** como Base64.
+  - Debe tener **mínimo 32 caracteres** (256 bits, lo que exige HS256). Si es más
+    corta, el servicio no arranca.
 - El tiempo de expiración del token se lee desde la variable de entorno
-  `JWT_EXPIRATION`.
+  `JWT_EXPIRATION`, en **minutos** (ejemplo: `480` = 8 horas).
+- Algoritmo de firma: **HS256**.
+- Dependencia (la misma en los tres `pom.xml`, sin versión: la define Spring Boot):
+
+  ```xml
+  <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+  </dependency>
+  ```
+
+  `ms-usuarios` firma con `NimbusJwtEncoder`; los tres validan con
+  `NimbusJwtDecoder.withSecretKey(...)` y `oauth2ResourceServer().jwt()`.
+  Referencia: `ms-usuarios/.../config/JwtConfig.java` y `SecurityConfig.java`.
+- Claims del token:
+
+  | Claim    | Contenido                          | Ejemplo                  |
+  |----------|------------------------------------|--------------------------|
+  | `sub`    | id del usuario, como texto         | `"3"`                    |
+  | `nombre` | nombre del usuario                 | `"Relator Ficticio Uno"` |
+  | `rol`    | `RELATOR` o `COORDINADOR`          | `"RELATOR"`              |
+  | `iat`    | fecha de emisión                   | (automático)             |
+  | `exp`    | fecha de vencimiento               | (automático)             |
+
+- `ms-salas` y `ms-reservas` deben **convertir el claim `rol` en autoridad** de
+  Spring Security (por ejemplo, con un `JwtAuthenticationConverter` que lea `rol`
+  y le anteponga `ROLE_`), para que las reglas por rol respondan `403 SIN_PERMISO`
+  cuando un relator intenta una acción de coordinador.
 - Las acciones de administración solo se permiten si el token tiene el rol
   `COORDINADOR`; si no, se responde `403`.
 - Única ruta pública (sin token): `POST /auth/login`.
+- Si falta el token, está alterado o venció, se responde `401 TOKEN_INVALIDO`.
 
 ## 8. Comandos
 
