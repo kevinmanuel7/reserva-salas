@@ -708,7 +708,7 @@ Como el docente no entregó datos, usamos este dataset propio: 9 salas, 7 usuari
 
 **Dónde vive.** En docs/dataset/ del repositorio, como salas.json, usuarios.json y reservas.json. Es la única fuente: Backend lo carga en MySQL y Datos lo usa para probar Room en la Fase 3. Si alguien cambia el dataset, cambia estos archivos y avisa al equipo.
 
-**Privacidad.** Todos los nombres, correos y actividades son inventados. La contraseña de prueba es la misma para todos los usuarios: la define Backend en el script de carga y la anota en el README. Nunca debe ser una contraseña real de alguien del equipo.
+**Privacidad.** Todos los nombres, correos y actividades son inventados. La contraseña de prueba es la misma para todos los usuarios. Como el repositorio es público, no se escribe en ningún archivo del repositorio: ms-usuarios la lee desde la variable de entorno PASSWORD_PRUEBA, la guarda como hash BCrypt al cargar el dataset, y el Líder la comparte con el equipo por otro medio. Nunca debe ser una contraseña real de alguien del equipo.
 
 ### Salas
 
@@ -1048,7 +1048,7 @@ Objetivo: una versión estable, documentada y lista para presentar.
 
 2.  **Rendimiento en el teléfono antiguo:** la app abre sin demoras largas y la grilla de la Agenda general se desplaza con fluidez.
 
-3.  **README completo:** qué es el proyecto, cómo levantar el backend, cómo instalar el APK, usuarios de prueba y contraseña de prueba.
+3.  **README completo:** qué es el proyecto, cómo levantar el backend, cómo instalar el APK, usuarios de prueba y cómo definir la variable PASSWORD_PRUEBA (sin escribir su valor).
 
 4.  **APK firmado:** el Líder crea la llave de firma (Build → Generate Signed App Bundle or APK), la guarda **fuera** del repositorio con un respaldo privado, y genera el APK en modo release.
 
