@@ -80,6 +80,32 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<!-- Copia docs/dataset/ a target/classes/dataset/ al compilar, para leer el
+			     dataset desde el classpath sin depender de la carpeta de arranque. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copiar-dataset</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.outputDirectory}/dataset</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${project.basedir}/../../docs/dataset</directory>
+									<includes>
+										<include>*.json</include>
+									</includes>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
