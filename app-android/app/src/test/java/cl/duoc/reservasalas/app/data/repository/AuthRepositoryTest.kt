@@ -99,6 +99,18 @@ class AuthRepositoryTest {
     }
 
     @Test
+    fun otroErrorDelServidor_devuelveMensajeDelServidor() = runBlocking {
+        val cuerpo = """{"codigo":"ERROR_INTERNO","mensaje":"Texto de prueba"}"""
+            .toResponseBody("application/json".toMediaType())
+        api.error = HttpException(Response.error<Any>(500, cuerpo))
+
+        val resultado = repositorio.login("relator1@duocuc.test", "clave")
+
+        assertEquals(ResultadoLogin.Error("Texto de prueba"), resultado)
+        assertNull(sesionDataStore.leerSesion())
+    }
+
+    @Test
     fun sinConexion_devuelveMensajeYNoGuardaSesion() = runBlocking {
         api.error = IOException("Failed to connect to localhost/127.0.0.1:8081")
 

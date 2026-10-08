@@ -48,16 +48,21 @@ class AuthRepository(
         }
     }
 
-    /** Lee el JSON de error del servidor y decide el mensaje según su "codigo". */
+    /**
+     * Lee el JSON de error del servidor y decide el mensaje según su "codigo".
+     * Para los demás códigos muestra el "mensaje" del servidor (AGENTS.md de la app, sección 4).
+     */
     private fun mensajeDeErrorHttp(e: HttpException): String {
         val error = try {
             val cuerpo = e.response()?.errorBody()?.string() ?: return MENSAJE_GENERICO
             json.decodeFromString<ErrorDto>(cuerpo)
         } catch (_: Exception) {
+            // El cuerpo no es el JSON de error esperado (o le falta "mensaje").
             return MENSAJE_GENERICO
         }
-        return when (error.codigo) {
-            "CREDENCIALES_INVALIDAS" -> MENSAJE_CREDENCIALES_INVALIDAS
+        return when {
+            error.codigo == "CREDENCIALES_INVALIDAS" -> MENSAJE_CREDENCIALES_INVALIDAS
+            error.mensaje.isNotBlank() -> error.mensaje
             else -> MENSAJE_GENERICO
         }
     }
