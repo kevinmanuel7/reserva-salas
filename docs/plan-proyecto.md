@@ -625,6 +625,14 @@ Interfaz debe diseñar cómo se ve cada estado que aparece en la pantalla:
 
 - **Estados:** inicial, guardando, error («Email o contraseña incorrectos» o «Sin conexión»). Si el login es exitoso, navega a Mi agenda.
 
+- **Validación y mensajes:**
+
+  - Si el email o la contraseña están vacíos, muestra «Ingresa tu email y contraseña» y no envía la petición al servidor.
+
+  - El email se envía sin espacios al inicio ni al final; la contraseña se envía tal como se escribió.
+
+  - El mensaje de error se borra cuando el usuario edita el email o la contraseña.
+
 - **Datos desde:** POST /auth/login. Datos guarda el token y el usuario en el teléfono.
 
 ### 2. Mi agenda (pantalla de inicio)
