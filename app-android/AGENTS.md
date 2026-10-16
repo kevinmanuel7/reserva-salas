@@ -124,3 +124,95 @@ Ejecutar dentro de `app-android/` (Windows, PowerShell).
 
 Antes de dar una tarea por terminada, `.\gradlew.bat assembleDebug` y
 `.\gradlew.bat test` deben terminar sin errores.
+
+## Etapa maqueta
+
+Esta sección manda sobre cualquier otra regla de este archivo mientras dure la etapa maqueta.
+Si algo de este archivo contradice esta sección, se sigue esta sección.
+
+### Objetivo
+Presentar el front completo de la app funcionando con datos falsos. No hay backend en esta etapa.
+
+### Referencias obligatorias
+- Especificación de cada pantalla, elemento por elemento: `docs/maqueta/especificacion.md`
+- Imagen de cada pantalla: `docs/maqueta/pantallas/<persona>/`
+- Antes de programar una pantalla, lee su sección en la especificación y mira su imagen.
+  La pantalla debe verse igual a la imagen.
+
+### Sin red
+- La app no hace llamadas de red. No usar Retrofit, ApiService ni los DTO del login.
+- Ese código existe en el proyecto pero queda desconectado: no se borra ni se modifica.
+- Todos los datos vienen de los repositorios falsos en `data/falso/`, incluido el login.
+
+### Estructura de carpetas
+Rutas relativas a `app/src/main/java/cl/duoc/reservasalas/app/`.
+
+| Carpeta | Contenido | Quién la modifica |
+| --- | --- | --- |
+| `ui/theme/` | Colores y tema | Solo Kevin |
+| `ui/componentes/` | Componentes compartidos | Solo Kevin |
+| `ui/navegacion/` | Rutas y NavHost | Solo Kevin |
+| `data/modelo/` | Sala, Equipo, Reserva, EstadoReserva | Solo Kevin |
+| `data/falso/` | Repositorios falsos y sus datos | Solo Kevin |
+| `ui/pantallas/<nombre>/` | Una carpeta por pantalla: `<Nombre>Pantalla.kt` y `<Nombre>ViewModel.kt` | El dueño de la pantalla |
+
+Si una pantalla necesita un cambio en una carpeta de "Solo Kevin", no lo hagas:
+avisa al usuario que debe pedírselo a Kevin.
+
+### Reglas de diseño
+- Usar solo los colores de `ui/theme/`. Prohibido escribir colores directamente (ej. `Color(0xFF...)`) dentro de una pantalla.
+- Usar solo los componentes de `ui/componentes/`: BarraSuperior, BarraInferior, BotonPrincipal,
+  BotonSecundario, BotonPeligro, TarjetaSala, ChipEstado, ChipEquipo, TarjetaMetrica, AvisoDestacado.
+- Prohibido crear botones, tarjetas o chips propios dentro de una pantalla.
+- Si un componente todavía no existe en `ui/componentes/`, usar el equivalente de Material 3
+  y dejar el comentario `// TODO: reemplazar por <NombreComponente>`.
+- Solo modo claro y orientación vertical. Todos los textos en español.
+
+### Reglas de cada pantalla
+- Arquitectura MVVM: la pantalla solo dibuja; los datos y la lógica van en su ViewModel.
+- El ViewModel obtiene los datos de un repositorio falso de `data/falso/`.
+  Prohibido escribir datos de ejemplo dentro de la pantalla o del ViewModel.
+- Cada pantalla tiene al menos una `@Preview`.
+- Cada lista tiene su mensaje para el caso vacío (sin datos).
+- Navegar solo con los nombres de ruta de la tabla de abajo. Prohibido inventar rutas nuevas.
+
+### Rutas definitivas
+| Ruta | Pantalla | Dueño |
+| --- | --- | --- |
+| login | Login | Kevin |
+| perfil | Perfil | Kevin |
+| checkin/{idReserva} | Check-in con cámara | Kevin |
+| inicioRelator | Inicio del relator | Simón |
+| salas | Lista de salas | Simón |
+| sala/{codigo} | Detalle de sala | Simón |
+| reservar/{codigo} | Reservar | Simón |
+| reservaConfirmada/{idReserva} | Reserva confirmada | Simón |
+| agenda | Mi agenda | Simón |
+| reserva/{idReserva} | Detalle de reserva | Simón |
+| inicioCoordinador | Inicio del coordinador | Bastián |
+| reservasDia | Reservas del día | Bastián |
+| supervisar/{idReserva} | Supervisar reserva | Bastián |
+| editarSala/{codigo} | Editar sala | Bastián |
+| horarioGeneral | Horario general | Bastián |
+
+`{codigo}` es el código de la sala (ej. S-201). `{idReserva}` es el número de la reserva.
+
+### Horarios
+Bloques con 5 minutos de pausa: 08:00–09:00, 09:05–10:00, 10:05–11:00 … 20:05–21:00 (13 bloques).
+Una reserva de varios bloques se muestra de corrido (ej. 10:05–12:00).
+
+### Flujo Git en esta etapa
+- Cada integrante trabaja solo en su rama personal: `feature/kevin`, `feature/simon`, `feature/bastian`.
+- Nunca hacer commit, merge ni push a `develop` ni a `main`. Solo Kevin fusiona en `develop`.
+- Para recibir la base nueva de Kevin: `git pull origin develop` estando en la rama propia.
+- Antes de cada commit, verificar la rama actual con `git status`.
+- Commits en español, verbo en presente (ej. "Agrega la lista de salas").
+- Avisar a Kevin cada vez que una pantalla esté terminada, para que la fusione.
+
+### Una pantalla está terminada cuando
+- Se ve igual a su imagen en `docs/maqueta/pantallas/`.
+- Usa solo colores del tema y componentes compartidos (o tiene el TODO si el componente aún no existe).
+- Muestra datos de los repositorios falsos.
+- Navega a las rutas de la tabla.
+- Tiene mensaje para el caso vacío.
+- Se probó en un teléfono o emulador, no solo en la vista previa.
