@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import cl.duoc.reservasalas.app.ReservaSalasApp
-import cl.duoc.reservasalas.app.data.repository.AuthRepository
+import cl.duoc.reservasalas.app.data.repository.RepositorioAutenticacion
 import cl.duoc.reservasalas.app.data.repository.ResultadoLogin
 import cl.duoc.reservasalas.app.model.Usuario
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,10 +32,11 @@ data class LoginUiState(
 )
 
 /**
- * Guarda el estado de la pantalla de login y llama a [AuthRepository].
+ * Guarda el estado de la pantalla de login y llama al repositorio de autenticación.
+ * Depende de la interfaz: en la maqueta recibe AutenticacionFalsa; con backend, AuthRepository.
  * La pantalla solo lee [uiState] y avisa acciones con las funciones públicas.
  */
-class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
+class LoginViewModel(private val repositorio: RepositorioAutenticacion) : ViewModel() {
 
     // Solo el ViewModel puede cambiar el estado (_uiState); la pantalla recibe
     // una versión de solo lectura (uiState).
@@ -70,7 +71,7 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
         _uiState.update { it.copy(estado = EstadoLogin.Cargando) }
         viewModelScope.launch {
-            val nuevoEstado = when (val resultado = authRepository.login(email, password)) {
+            val nuevoEstado = when (val resultado = repositorio.login(email, password)) {
                 is ResultadoLogin.Exito -> EstadoLogin.Exito(resultado.usuario)
                 is ResultadoLogin.Error -> EstadoLogin.Error(resultado.mensaje)
             }
@@ -79,16 +80,16 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
     }
 
     companion object {
-        const val MENSAJE_CAMPOS_VACIOS = "Ingresa tu email y contraseña"
+        const val MENSAJE_CAMPOS_VACIOS = "Ingresa tu correo y contraseña"
 
         /**
-         * Le dice a Android cómo crear este ViewModel: saca el AuthRepository
+         * Le dice a Android cómo crear este ViewModel: saca el repositorio de autenticación
          * del AppContainer que vive en ReservaSalasApp (inyección manual, sin Hilt).
          */
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as ReservaSalasApp
-                LoginViewModel(app.container.authRepository)
+                LoginViewModel(app.container.repositorioAutenticacion)
             }
         }
     }

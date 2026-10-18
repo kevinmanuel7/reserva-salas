@@ -216,3 +216,39 @@ Una reserva de varios bloques se muestra de corrido (ej. 10:05–12:00).
 - Navega a las rutas de la tabla.
 - Tiene mensaje para el caso vacío.
 - Se probó en un teléfono o emulador, no solo en la vista previa.
+### Base disponible (Entrega A y B, hecha por Kevin)
+Todo esto ya existe. Úsalo, no lo dupliques.
+
+- **Colores**: `ui/theme/Color.kt` (NegroDuoc, AmarilloDuoc, AmarilloSuave, Fondo, Superficie, Borde,
+  Gris85, RojoError, VerdeExito, GrisCancelada, GrisOcupado, GrisSobreNegro, Blanco).
+- **Componentes** (`ui/componentes/`): BarraSuperior, BarraInferior, LogoDuoc, BotonPrincipal,
+  BotonSecundario, BotonPeligro, ChipEstado, ChipEquipo, ChipRol, TarjetaSala, TarjetaMetrica,
+  AvisoDestacado, FormaTarjeta y PantallaEnConstruccion. Cada archivo tiene su @Preview.
+- **Modelos** (`data/modelo/`): Sala, Equipo, EstadoEquipo, HorarioSala, Bloque, HorarioGeneral,
+  Reserva, EstadoReserva, y funciones de formato (formatearHora, formatearFechaLarga, formatearFechaCorta).
+  `Usuario` y `Rol` están en `model/` (son del login).
+- **Reglas de reserva ya programadas** en `Reserva`: checkInHabilitado, sinCheckIn, sePuedeCancelar,
+  mostrarRecordatorio y ocupa(bloque). Los bloques de una sala: `sala.bloques(horarioGeneral)`.
+  No repitas esas reglas dentro de un ViewModel: llama a estas funciones.
+- **Repositorios**: las interfaces están en `data/repository/Repositorios.kt` (RepositorioSalas,
+  RepositorioReservas, RepositorioHorario, RepositorioAutenticacion). Las versiones falsas, en `data/falso/`.
+  Todo cambio (crear, cancelar, check-in, editar sala) se ve al instante en todas las pantallas.
+- **Hora actual**: NUNCA usar `LocalDateTime.now()` ni `LocalDate.now()`. Usar `container.reloj.ahora()`
+  y `container.reloj.hoy()`. En la maqueta el reloj marca siempre las 09:55 de hoy.
+- **Usuario conectado**: `container.sesionDataStore.sesion` (Flow con la sesión; `sesion?.usuario`).
+- **Cómo un ViewModel obtiene sus datos**: igual que `ui/pantallas/perfil/PerfilViewModel.kt`, con un
+  `Factory` que saca los repositorios de `(this[APPLICATION_KEY] as ReservaSalasApp).container`.
+  Ese archivo es el ejemplo a copiar.
+- **Login de la maqueta**: cualquiera de los 7 correos de `docs/dataset/usuarios.json` con la contraseña
+  `DatosFalsos.CONTRASENA_MAQUETA` ("maqueta2026"). Es solo de la maqueta, no es la PASSWORD_PRUEBA del backend.
+
+### Navegación (contrato con las pantallas)
+- Cada pantalla ya existe como relleno en `ui/pantallas/<nombre>/` con su firma definitiva.
+  Se reemplaza el CONTENIDO de la función; NO se cambia su nombre ni sus parámetros.
+- Las pantallas no reciben el NavController. Reciben:
+  - `navegar(ruta)`: para ir a otra pantalla, siempre con `Rutas` (ej. `navegar(Rutas.sala(codigo))`).
+  - `volver()`: para la flecha atrás de la BarraSuperior.
+- La barra inferior la dibuja la navegación: las pantallas principales NO dibujan BarraInferior.
+  Todas las pantallas sí dibujan su propia BarraSuperior (con `alVolver = volver` si es secundaria).
+- Al ir a `Rutas.reservaConfirmada(id)`, la navegación saca "Reservar" del historial automáticamente.
+- El botón "Editar sala" (solo coordinador) hace `navegar(Rutas.editarSala(codigo))`.

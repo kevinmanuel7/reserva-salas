@@ -79,7 +79,7 @@ class LoginScreenTest {
     }
 
     private fun tocarIniciarSesion() {
-        composeRule.onNodeWithText("Iniciar sesión").performClick()
+        composeRule.onNodeWithText("Ingresar").performClick()
     }
 
     @Test
@@ -95,7 +95,7 @@ class LoginScreenTest {
         tocarIniciarSesion()
         composeRule.onNodeWithText(LoginViewModel.MENSAJE_CAMPOS_VACIOS).assertIsDisplayed()
 
-        composeRule.onNodeWithText("Email").performTextInput("r")
+        composeRule.onNodeWithText("Correo institucional").performTextInput("r")
 
         composeRule.onNodeWithText(LoginViewModel.MENSAJE_CAMPOS_VACIOS).assertDoesNotExist()
     }

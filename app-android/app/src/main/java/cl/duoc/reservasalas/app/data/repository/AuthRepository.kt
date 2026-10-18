@@ -20,15 +20,16 @@ sealed interface ResultadoLogin {
 
 /**
  * Hace el login contra ms-usuarios y guarda la sesión si es correcto.
+ * Etapa maqueta: no se usa (AppContainer entrega AutenticacionFalsa), pero se conserva para la próxima evaluación.
  * Nunca lanza excepciones hacia afuera: las convierte en un mensaje para el usuario.
  */
 class AuthRepository(
     private val api: UsuariosApi,
     private val sesionDataStore: SesionDataStore,
     private val json: Json
-) {
+) : RepositorioAutenticacion {
 
-    suspend fun login(email: String, password: String): ResultadoLogin {
+    override suspend fun login(email: String, password: String): ResultadoLogin {
         return try {
             val respuesta = api.login(LoginPeticionDto(email, password))
             val usuario = respuesta.usuario.aModelo()
