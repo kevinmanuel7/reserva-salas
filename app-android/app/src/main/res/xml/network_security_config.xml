@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Reglas de red de la app.
+    - Por defecto se prohíbe http sin cifrar. Se escribe explícitamente porque en
+      Android 8.0 y 8.1 (nuestro minSdk 26) http está permitido si no se dice nada.
+    - Solo en desarrollo se permite http hacia localhost, que adb reverse redirige
+      a los microservicios del computador.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>
