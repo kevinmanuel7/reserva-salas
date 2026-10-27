@@ -72,7 +72,7 @@ fun InicioCoordinadorPantalla(
                     titulo = "Supervisar Reserva",
                     descripcion = "Revisar estado e incidencias de una reserva activa",
                     textoBoton = "Supervisar",
-                    onClick = { navegar(Rutas.SUPERVISAR) }
+                    onClick = { navegar(Rutas.RESERVAS_DIA) }
                 )
             }
 
