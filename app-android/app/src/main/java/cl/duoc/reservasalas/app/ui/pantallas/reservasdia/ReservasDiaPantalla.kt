@@ -5,17 +5,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cl.duoc.reservasalas.app.ui.componentes.BarraSuperior
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
+import cl.duoc.reservasalas.app.ui.theme.ReservaSalasTheme
 
 val DuocBlack = Color(0xFF2D2926)
 val DuocYellow = Color(0xFFFFB81C)
@@ -45,37 +46,17 @@ fun ReservasDiaPantalla(
         ReservaItem("4", "S-305", "Patricia Morales", "14:30 - 16:00", "Confirmada")
     )
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Reservas del Día",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navegar("volver") }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DuocBlack
-                )
-            )
-        },
-        containerColor = BackgroundGray
-    ) { innerPadding ->
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(BackgroundGray)
+    ) {
+        // Pantalla principal (de la barra inferior): sin flecha atrás, muestra el logo.
+        BarraSuperior(titulo = "Reservas del Día")
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -97,7 +78,7 @@ fun ReservasDiaPantalla(
             items(listaReservas) { reserva ->
                 ReservaCard(
                     reserva = reserva,
-                    onClickDetalle = { navegar(Rutas.SUPERVISAR) }
+                    onClickDetalle = { navegar(Rutas.supervisar(reserva.id.toInt())) }
                 )
             }
         }
@@ -187,5 +168,13 @@ private fun EstadoChip(estado: String) {
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 800)
+@Composable
+private fun ReservasDiaPantallaPreview() {
+    ReservaSalasTheme {
+        ReservasDiaPantalla(navegar = {})
     }
 }
