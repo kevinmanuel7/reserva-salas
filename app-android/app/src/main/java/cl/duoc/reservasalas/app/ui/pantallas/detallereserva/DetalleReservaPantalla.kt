@@ -171,7 +171,7 @@ fun DetalleReservaPantalla(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            
+
             if (viewModel.sePuedeCancelar(reserva)) {
                 BotonPeligro(
                     texto = "Cancelar reserva",
