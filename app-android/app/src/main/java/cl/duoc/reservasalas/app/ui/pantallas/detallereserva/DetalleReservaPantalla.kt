@@ -164,6 +164,14 @@ fun DetalleReservaPantalla(
                 }
             }
 
+            if (viewModel.checkInHabilitado(reserva)) {
+                BotonPrincipal(
+                    texto = "Hacer check-in",
+                    alPresionar = { navegar(Rutas.checkin(reserva.id)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            
             if (viewModel.sePuedeCancelar(reserva)) {
                 BotonPeligro(
                     texto = "Cancelar reserva",

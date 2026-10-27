@@ -43,6 +43,7 @@ import cl.duoc.reservasalas.app.ui.screens.LoginScreen
 import cl.duoc.reservasalas.app.ui.theme.Fondo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import androidx.compose.foundation.layout.imePadding
 
 /** Mientras se lee DataStore no se sabe si hay sesión: se distingue "leyendo" de "no hay sesión". */
 private sealed interface EstadoSesion {
@@ -119,8 +120,8 @@ fun NavegacionApp(sesion: Flow<Sesion?>) {
             modifier = Modifier
                 .padding(relleno)
                 .then(if (mostrarBarra) Modifier else Modifier.navigationBarsPadding())
+                .imePadding()
         ) {
-            // --- Kevin ---
             composable(Rutas.LOGIN) {
                 LoginScreen(
                     alIniciarSesion = { usuario ->
@@ -137,7 +138,6 @@ fun NavegacionApp(sesion: Flow<Sesion?>) {
                 CheckInPantalla(idReserva = entrada.idReserva(), volver = volver)
             }
 
-            // --- Simón ---
             composable(Rutas.INICIO_RELATOR) {
                 InicioRelatorPantalla(navegar = navegar)
             }
@@ -160,7 +160,6 @@ fun NavegacionApp(sesion: Flow<Sesion?>) {
                 DetalleReservaPantalla(idReserva = entrada.idReserva(), navegar = navegar, volver = volver)
             }
 
-            // --- Bastián ---
             composable(Rutas.INICIO_COORDINADOR) {
                 InicioCoordinadorPantalla(navegar = navegar)
             }

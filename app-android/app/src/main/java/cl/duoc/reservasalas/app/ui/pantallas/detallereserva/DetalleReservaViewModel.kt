@@ -28,6 +28,9 @@ class DetalleReservaViewModel(
     fun sePuedeCancelar(reserva: Reserva): Boolean =
         reserva.sePuedeCancelar(reloj.ahora())
 
+    fun checkInHabilitado(reserva: Reserva): Boolean =
+        reserva.checkInHabilitado(reloj.ahora())
+
     fun cancelar(idReserva: Int) {
         viewModelScope.launch {
             repositorioReservas.cancelar(idReserva)
