@@ -11,10 +11,10 @@ import cl.duoc.reservasalas.usuarios.service.AuthService;
 import jakarta.validation.Valid;
 
 /**
- * Recibe las peticiones de /auth. Solo traduce HTTP ↔ servicio; la lógica está en AuthService.
+ * Recibe las peticiones de /api. Solo traduce HTTP ↔ servicio; la lógica está en AuthService.
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
     private final AuthService authService;
