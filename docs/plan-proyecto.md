@@ -32,7 +32,7 @@ La app nunca habla directo con MySQL: todo pasa por la API, y ms-reservas consul
 | Tema                      | Decisión                                                                                                                                                                                                                                                                  |
 |---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Horarios                  | Bloques fijos de 1 hora, sin pausas entre ellos. Horario predeterminado: 13 bloques, de 08:00 a 21:00. Se define al inicio de cada semestre y el coordinador puede modificarlo (requisitos del mandante, más abajo)                                                       |
-| Inicio de sesión          | Email y contraseña reales, con token JWT. Sin inicio de sesión con Google                                                                                                                                                                                                 |
+| Inicio de sesión          | Email y contraseña reales, con token JWT renovable. Sin inicio de sesión con Google                                                                                                                                                                                                 |
 | Sin conexión              | Se puede consultar (datos guardados en Room), pero no reservar ni cancelar                                                                                                                                                                                                |
 | Cancelar una reserva      | Cambia su estado a CANCELADA; nunca se borra                                                                                                                                                                                                                              |
 | Retirar una sala          | Se marca como inactiva; nunca se borra                                                                                                                                                                                                                                    |
@@ -45,6 +45,7 @@ La app nunca habla directo con MySQL: todo pasa por la API, y ms-reservas consul
 | Versión mínima de Android | minSdk 26 (Android 8.0). Desde esta versión se puede usar java.time (clases de fechas y horas como LocalDate y LocalTime) sin configuración adicional, y sigue cubriendo la gran mayoría de teléfonos en uso. targetSdk y compileSdk: la versión más reciente disponible. |
 | Paquete de la app         | cl.duoc.reservasalas.app. En el backend: cl.duoc.reservasalas.\<nombre\> (por ejemplo cl.duoc.reservasalas.usuarios)                                                                                                                                                      |
 | Backend                   | Java con Spring Boot y Maven                                                                                                                                                                                                                                              |
+| API                       | REST versionada: todas las rutas empiezan con /api/v1. La usan la app Android y el frontend web (DSY1104). Los cambios del contrato se registran en la sección 5                                                                                                          |
 | Metodología               | Scrum ligero: sprints de 2 semanas con tablero Kanban en Trello (sección 3)                                                                                                                                                                                               |
 | Mensajes de commit        | En español, en presente y describiendo el cambio. Ejemplo: Agrega entidad Usuario y su repositorio (sección 3)                                                                                                                                                            |
 
@@ -401,7 +402,20 @@ El backend es quien decide si hay cruce, porque es el único que ve las reservas
 
 ## 5. Contrato 1: API REST (Backend ↔ Datos de la app)
 
-La API tiene 11 endpoints repartidos en 3 microservicios; todos responden JSON y todos, salvo el login, exigen el token del usuario.
+La API tiene 14 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}` y `GET /api/v1/bloques`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
+
+### Registro de cambios del contrato
+
+| Versión | Fecha | Cambio | Motivo |
+|---------|-------|--------|--------|
+| 2 | 2026-11-04 | Todas las rutas llevan el prefijo `/api/v1` | Versionado de la API, exigido en DSY1104 |
+| 2 | 2026-11-04 | `GET /salas`, `GET /salas/{id}` y `GET /bloques` pasan a ser públicos | El frontend web muestra el catálogo antes de iniciar sesión. La app puede seguir enviando el token: el servidor lo acepta igual |
+| 2 | 2026-11-04 | Nuevo `POST /reservas/lote` | Confirmar varias reservas de una vez, todo o nada (página «Mi reserva» de la web) |
+| 2 | 2026-11-04 | Nuevo `DELETE /salas/{id}` | Operación de eliminación del CRUD. Es una baja lógica: la sala queda con `activa: false` y conserva su historial |
+| 2 | 2026-11-04 | Nuevo `POST /auth/refresh` | Renovar el token antes de que venza, sin volver a escribir la contraseña |
+| 1 | 2026-09-30 | Versión inicial: 11 endpoints | — |
+
+Decisión del líder, acordada con el equipo. Se mantienen todas las reglas de la versión 1 que no aparecen en esta tabla.
 
 ### Conceptos
 
@@ -414,12 +428,15 @@ Cada pedido de la app al servidor tiene tres partes:
 | GET    | Obtener datos            | Pedir la lista de salas                |
 | POST   | Crear algo nuevo         | Crear una reserva                      |
 | PUT    | Modificar algo existente | Editar una sala o cancelar una reserva |
+| DELETE | Dar de baja algo         | Retirar una sala (baja lógica)         |
 
-**2. Ruta:** la dirección dentro del servidor, por ejemplo /salas.
+**2. Ruta:** la dirección dentro del servidor, por ejemplo /api/v1/salas.
 
-- {id} en una ruta se reemplaza por un número real: /salas/5 = la sala con id 5.
+- /api/v1 es la **versión** de la API. Si algún día cambia la forma de un endpoint de manera incompatible, se publica en /api/v2 y la versión 1 sigue funcionando para las apps que aún no se actualizan.
 
-- Lo que va después de ? son filtros: /reservas?fecha=2026-10-05 = solo las reservas del 5 de octubre. Varios filtros se unen con &.
+- {id} en una ruta se reemplaza por un número real: /api/v1/salas/5 = la sala con id 5.
+
+- Lo que va después de ? son filtros: /api/v1/reservas?fecha=2026-10-05 = solo las reservas del 5 de octubre. Varios filtros se unen con &.
 
 **3. Código de respuesta:** número con el que el servidor indica cómo le fue.
 
@@ -435,51 +452,60 @@ Cada pedido de la app al servidor tiene tres partes:
 
 ### Token (JWT)
 
-1.  Al iniciar sesión correctamente, el servidor entrega un **token**: un texto largo que funciona como pase de acceso temporal.
+1.  Al iniciar sesión correctamente, el servidor entrega un **token**: un texto largo que funciona como pase de acceso temporal. Dura lo que indica la variable `JWT_EXPIRATION` (en minutos).
 
-2.  La app lo guarda y lo envía en **todos** los pedidos siguientes, en el encabezado Authorization con este formato exacto: Authorization: Bearer \<token\>.
+2.  La app lo guarda y lo envía en todos los pedidos que lo exigen, en el encabezado Authorization con este formato exacto: Authorization: Bearer \<token\>. Enviarlo también en las rutas públicas no causa error.
 
 3.  Con el token, el servidor sabe quién hace cada pedido y qué rol tiene. Si falta, es inválido o venció, responde 401 y la app vuelve a la pantalla de Login.
 
+4.  **Renovación:** antes de que venza, la app o la web llaman a POST /api/v1/auth/refresh con el token actual y reciben uno nuevo, con la duración completa. Un token ya vencido no se puede renovar: hay que iniciar sesión otra vez.
+
 ### Direcciones de los microservicios
 
-| Microservicio | Puerto | Responsabilidad                          |
-|---------------|--------|------------------------------------------|
-| ms-usuarios   | 8081   | Login y usuarios                         |
-| ms-salas      | 8082   | Catálogo de salas                        |
-| ms-reservas   | 8083   | Bloques, reservas y validación de cruces |
+| Microservicio | Puerto | Rutas que atiende                   | Responsabilidad                          |
+|---------------|--------|-------------------------------------|------------------------------------------|
+| ms-usuarios   | 8081   | /api/v1/auth/**                     | Login, renovación del token y usuarios   |
+| ms-salas      | 8082   | /api/v1/salas/**                    | Catálogo de salas                        |
+| ms-reservas   | 8083   | /api/v1/bloques, /api/v1/reservas/** | Bloques, reservas y validación de cruces |
+
+En el servidor publicado (AWS EC2) los tres quedan detrás de **Nginx** en el puerto 80. Nginx entrega el frontend web y reenvía cada ruta /api/v1/... al microservicio que corresponde. Así la app y la web usan una sola dirección.
 
 ### Endpoints
 
-La columna «Quién» indica qué rol puede usar el endpoint. Si otro rol lo intenta, la respuesta es 403.
+La columna «Quién» indica qué rol puede usar el endpoint. Si otro rol lo intenta, la respuesta es 403. «Público» = no exige token.
 
 **ms-usuarios**
 
-| Método | Ruta        | Quién                 | Recibe          | Responde                                     |
-|--------|-------------|-----------------------|-----------------|----------------------------------------------|
-| POST   | /auth/login | Cualquiera, sin token | email, password | 200 con token y usuario (sin password) · 401 |
+| Método | Ruta                 | Quién                 | Recibe                         | Responde                                     |
+|--------|----------------------|-----------------------|--------------------------------|----------------------------------------------|
+| POST   | /api/v1/auth/login   | Público               | email, password                | 200 con token y usuario (sin password) · 401 |
+| POST   | /api/v1/auth/refresh | Ambos                 | Nada (solo el token vigente)   | 200 con token nuevo y usuario · 401          |
 
 **ms-salas**
 
-| Método | Ruta                         | Quién       | Recibe                                                                                | Responde                                                                |
-|--------|------------------------------|-------------|---------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| GET    | /salas                       | Ambos       | Filtros opcionales: capacidadMin, proyector, computadores, climatizacion (true/false) | 200 con las salas activas que cumplen los filtros                       |
-| GET    | /salas?incluirInactivas=true | Coordinador | Mismos filtros                                                                        | 200 con todas las salas, activas e inactivas · 403 si lo usa un relator |
-| GET    | /salas/{id}                  | Ambos       | Nada                                                                                  | 200 con una sala · 404                                                  |
-| POST   | /salas                       | Coordinador | Todos los campos de Sala menos id                                                     | 201 con la sala creada · 400 · 403                                      |
-| PUT    | /salas/{id}                  | Coordinador | Todos los campos de Sala menos id, incluido activa                                    | 200 · 400 · 403 · 404                                                   |
+| Método | Ruta                                 | Quién       | Recibe                                                                                | Responde                                                                |
+|--------|--------------------------------------|-------------|---------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| GET    | /api/v1/salas                        | Público     | Filtros opcionales: capacidadMin, proyector, computadores, climatizacion (true/false) | 200 con las salas activas que cumplen los filtros                       |
+| GET    | /api/v1/salas?incluirInactivas=true  | Coordinador | Mismos filtros                                                                        | 200 con todas las salas, activas e inactivas · 401 sin token · 403 si lo usa un relator |
+| GET    | /api/v1/salas/{id}                   | Público     | Nada                                                                                  | 200 con una sala · 404                                                  |
+| POST   | /api/v1/salas                        | Coordinador | Todos los campos de Sala menos id                                                     | 201 con la sala creada · 400 · 403                                      |
+| PUT    | /api/v1/salas/{id}                   | Coordinador | Todos los campos de Sala menos id, incluido activa                                    | 200 · 400 · 403 · 404                                                   |
+| DELETE | /api/v1/salas/{id}                   | Coordinador | Nada                                                                                  | 200 con la sala en `activa: false` · 403 · 404                          |
+
+DELETE /salas/{id} **no borra la fila**: la marca como inactiva (regla «Retirar una sala» de la sección 1). La sala deja de aparecer para reservar, pero sus reservas pasadas siguen apuntando a ella. Para reactivarla se usa PUT con `activa: true`.
 
 **ms-reservas**
 
-| Método | Ruta                    | Quién                                   | Recibe                                            | Responde                                            |
-|--------|-------------------------|-----------------------------------------|---------------------------------------------------|-----------------------------------------------------|
-| GET    | /bloques                | Ambos                                   | Nada                                              | 200 con los 13 bloques                              |
-| GET    | /reservas               | Ambos                                   | Filtros: fecha (obligatorio), salaId (opcional)   | 200 con las reservas ACTIVA que cumplen los filtros |
-| GET    | /reservas/mias          | Ambos                                   | Filtro opcional: fecha                            | 200 con las reservas ACTIVA del usuario del token   |
-| POST   | /reservas               | Ambos                                   | salaId, fecha, bloqueInicio, bloqueFin, actividad | 201 con la reserva creada · 400 · 409               |
-| PUT    | /reservas/{id}/cancelar | El dueño de la reserva o el coordinador | Nada                                              | 200 con la reserva en estado CANCELADA · 403 · 404  |
+| Método | Ruta                            | Quién                                   | Recibe                                            | Responde                                            |
+|--------|---------------------------------|-----------------------------------------|---------------------------------------------------|-----------------------------------------------------|
+| GET    | /api/v1/bloques                 | Público                                 | Nada                                              | 200 con los 13 bloques                              |
+| GET    | /api/v1/reservas                | Ambos                                   | Filtros: fecha (obligatorio), salaId (opcional)   | 200 con las reservas ACTIVA que cumplen los filtros |
+| GET    | /api/v1/reservas/mias           | Ambos                                   | Filtro opcional: fecha                            | 200 con las reservas ACTIVA del usuario del token   |
+| POST   | /api/v1/reservas                | Ambos                                   | salaId, fecha, bloqueInicio, bloqueFin, actividad | 201 con la reserva creada · 400 · 404 · 409         |
+| POST   | /api/v1/reservas/lote           | Ambos                                   | Lista de reservas, cada una con los campos de POST /reservas | 201 con la lista de reservas creadas · 400 · 404 · 409 |
+| PUT    | /api/v1/reservas/{id}/cancelar  | El dueño de la reserva o el coordinador | Nada                                              | 200 con la reserva en estado CANCELADA · 403 · 404  |
 
-POST /reservas **no recibe usuarioId**: el servidor lo obtiene del token. Si la app lo enviara, cualquiera podría reservar a nombre de otra persona cambiando ese número.
+POST /reservas y POST /reservas/lote **no reciben usuarioId**: el servidor lo obtiene del token. Si la app lo enviara, cualquiera podría reservar a nombre de otra persona cambiando ese número.
 
 ### Validaciones de POST /reservas, en este orden
 
@@ -496,6 +522,18 @@ POST /reservas **no recibe usuarioId**: el servidor lo obtiene del token. Si la 
 6.  No hay cruce según la regla de la sección 4. Si hay → 409 CRUCE_HORARIO.
 
 7.  Todo bien → se guarda con estado: "ACTIVA" y responde 201.
+
+### Validaciones de POST /reservas/lote (todo o nada)
+
+1.  La lista viene y tiene al menos una reserva. Si no → 400 DATOS_INVALIDOS.
+
+2.  Cada reserva de la lista pasa las validaciones 1 a 6 de POST /reservas, en ese orden. La primera que falla detiene todo y se responde con su error. El `mensaje` indica cuál reserva de la lista falló.
+
+3.  Las reservas de la lista no se cruzan entre sí (misma sala, misma fecha y bloques superpuestos). Si se cruzan → 409 CRUCE_HORARIO.
+
+4.  Todo bien → se guardan **todas** en una sola transacción y responde 201 con la lista. Si cualquier paso falla, **no se guarda ninguna**.
+
+Ejemplo: un relator arma en la web tres bloques para su curso y confirma. Si otra persona ocupó uno de esos bloques mientras tanto, recibe 409 y ninguno de los tres queda reservado; así no queda con un curso a medio reservar.
 
 ### Formato estándar de errores
 
@@ -528,7 +566,7 @@ Las rutas que no existen (404), los métodos no permitidos (405) y los formatos 
 
 ### Ejemplos completos
 
-**Login.** La app envía POST /auth/login:
+**Login.** La app envía POST /api/v1/auth/login:
 
 {  
 "email": "relator1@duocuc.test",  
@@ -547,7 +585,7 @@ Respuesta 200:
 }  
 }
 
-**Crear una reserva.** La app envía POST /reservas con el token:
+**Crear una reserva.** La app envía POST /api/v1/reservas con el token:
 
 {  
 "salaId": 1,  
@@ -715,7 +753,7 @@ Interfaz debe diseñar cómo se ve cada estado que aparece en la pantalla:
 
 ## 7. Dataset ficticio
 
-Como el docente no entregó datos, usamos este dataset propio: 9 salas, 7 usuarios y 30 reservas sin cruces, más 17 casos de prueba para validar la API.
+Como el docente no entregó datos, usamos este dataset propio: 9 salas, 7 usuarios y 30 reservas sin cruces, más 25 casos de prueba para validar la API.
 
 **Dónde vive.** En docs/dataset/ del repositorio, como salas.json, usuarios.json y reservas.json. Es la única fuente: Backend lo carga en MySQL y Datos lo usa para probar Room en la Fase 3. Si alguien cambia el dataset, cambia estos archivos y avisa al equipo.
 
@@ -800,7 +838,7 @@ Backend los guarda en la colección de Postman (docs/postman/). Todos usan el da
 |-----|---------------|----------------------------------------------------------|--------------------------------------------------------------------|
 | 1   | Relator 1     | Login con la contraseña de prueba                        | 200 con token                                                      |
 | 2   | Relator 1     | Login con contraseña incorrecta                          | 401 CREDENCIALES_INVALIDAS                                         |
-| 3   | Nadie         | GET /salas sin token                                     | 401 TOKEN_INVALIDO                                                 |
+| 3   | Nadie         | GET /salas sin token                                     | 200 con 8 salas: el catálogo es público (contrato v2)              |
 | 4   | Relator 1     | GET /salas                                               | 200 con 8 salas (sin la SC-301)                                    |
 | 5   | Relator 1     | GET /salas?incluirInactivas=true                         | 403 SIN_PERMISO                                                    |
 | 6   | Coordinador 1 | GET /salas?incluirInactivas=true                         | 200 con 9 salas                                                    |
@@ -815,8 +853,16 @@ Backend los guarda en la colección de Postman (docs/postman/). Todos usan el da
 | 15  | Relator 2     | Reservar la sala 99                                      | 404 SALA_NO_ENCONTRADA                                             |
 | 16  | Relator 1     | PUT /reservas/3/cancelar (la reserva 3 es del Relator 3) | 403 SIN_PERMISO                                                    |
 | 17  | Coordinador 1 | PUT /reservas/3/cancelar                                 | 200 con la reserva en estado CANCELADA                             |
+| 18  | Nadie         | GET /salas?incluirInactivas=true sin token               | 401 TOKEN_INVALIDO                                                 |
+| 19  | Nadie         | GET /reservas?fecha=2026-11-02 sin token                 | 401 TOKEN_INVALIDO                                                 |
+| 20  | Relator 1     | POST /auth/refresh con su token vigente                  | 200 con un token nuevo y el usuario                                |
+| 21  | Relator 2     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 1, 2026-11-03, bloque 12 a 12 | 409 CRUCE_HORARIO (choca con la reserva 6) y no se guarda ninguna  |
+| 22  | Relator 2     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 2 a 3 | 409 CRUCE_HORARIO: las dos del lote se cruzan entre sí             |
+| 23  | Relator 2     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 3 a 4 | 201 con las 2 reservas creadas                                     |
+| 24  | Relator 1     | DELETE /salas/6                                          | 403 SIN_PERMISO                                                    |
+| 25  | Coordinador 1 | DELETE /salas/6                                          | 200 con activa: false; después GET /salas devuelve 7 salas         |
 
-Los casos 7 a 11 y 16 a 17 modifican datos: después de correrlos, se recarga el dataset original.
+Los casos 7 a 11, 16 a 17, 23 y 25 modifican datos: después de correrlos, se recarga el dataset original.
 
 ## 8. Fases del proyecto, paso a paso
 
@@ -963,7 +1009,7 @@ Objetivo: que la app guarde datos en el teléfono y detecte cruces por sí misma
 
 ### Fase 4 · Backend · Lidera: Backend (en paralelo desde la Fase 2)
 
-Objetivo: los 11 endpoints del Contrato 1 funcionando y probados con Postman.
+Objetivo: los 14 endpoints del Contrato 1 (versión 2) funcionando y probados con Postman.
 
 **Backend**
 
@@ -983,11 +1029,11 @@ Objetivo: los 11 endpoints del Contrato 1 funcionando y probados con Postman.
 
 8.  Cargar el dataset de docs/dataset/ al arrancar.
 
-9.  Crear la colección de Postman con los 17 casos de la sección 7 y guardarla en docs/postman/.
+9.  Crear la colección de Postman con los 25 casos de la sección 7 y guardarla en docs/postman/.
 
 **Líder (Datos):** construye ms-usuarios (paso 3) y revisa los cambios del backend antes de que se fusionen en develop, para verificar que respeten el Contrato 1.
 
-**Terminada cuando:** los 17 casos de prueba dan el resultado esperado.
+**Terminada cuando:** los 25 casos de prueba dan el resultado esperado.
 
 ### Fase 5 · Integración · Lidera: Líder
 
@@ -1004,6 +1050,8 @@ Objetivo: la app usa el backend real; Room queda como copia local para cuando no
 4.  Cambiar los repositorios: piden al servidor, guardan la respuesta en Room y, sin conexión, leen de Room.
 
 5.  Reemplazar el login falso por POST /auth/login y manejar el 401 (volver a Login).
+
+6.  Las URL base de Retrofit terminan en /api/v1/ (por ejemplo http://localhost:8081/api/v1/), así las rutas de la interfaz Retrofit no cambian.
 
 **Backend:** dejar los microservicios accesibles desde la red local y apoyar la resolución de errores.
 
@@ -1055,7 +1103,7 @@ Objetivo: completar todo lo que pide el caso.
 
 Objetivo: una versión estable, documentada y lista para presentar.
 
-1.  **Pruebas:** correr los 17 casos de Postman y recorrer cada pantalla en el teléfono de pruebas y en el emulador con Android 8.0, con ambos roles. Cada error encontrado se anota como tarjeta y se corrige en una rama feature/.
+1.  **Pruebas:** correr los 25 casos de Postman y recorrer cada pantalla en el teléfono de pruebas y en el emulador con Android 8.0, con ambos roles. Cada error encontrado se anota como tarjeta y se corrige en una rama feature/.
 
 2.  **Rendimiento en el teléfono antiguo:** la app abre sin demoras largas y la grilla de la Agenda general se desplaza con fluidez.
 
@@ -1103,7 +1151,7 @@ El proyecto está listo para entregar cuando todos estos puntos están marcados.
 
 **Calidad**
 
-- [ ] Los 17 casos de Postman dan el resultado esperado.
+- [ ] Los 25 casos de Postman dan el resultado esperado.
 
 - [ ] La app funciona con fluidez en el teléfono de pruebas.
 

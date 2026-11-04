@@ -66,20 +66,34 @@ Dentro del paquete base, separar por capas:
   contrato sin aviso.
 - Los nombres de campo del JSON son exactamente los del modelo de datos
   (sección 4 del plan).
+- Todas las rutas llevan el prefijo de versión `/api/v1`, puesto en el
+  `@RequestMapping` de cada controlador (ejemplo:
+  `@RequestMapping("/api/v1/salas")`). Nunca rutas sin versión.
 - Usar los métodos HTTP según su significado: `GET` consulta, `POST` crea,
-  `PUT` modifica.
+  `PUT` modifica, `DELETE` da de baja.
+- `DELETE /api/v1/salas/{id}` es una **baja lógica**: cambia `activa` a `false` y
+  responde 200 con la sala. Nunca se borra una fila de sala ni de reserva.
+- `POST /api/v1/reservas/lote` guarda todas las reservas de la lista o ninguna:
+  el método del servicio lleva `@Transactional` y valida todo antes de guardar
+  (orden de validaciones en la sección 5 del plan).
 - Responder con el código HTTP que indica el contrato (200, 201, 400, 401, 403,
   404, 409). Un cruce de horario responde `409`.
 - Cada microservicio tiene un manejador global de errores que responde siempre con
   el formato de error del contrato.
 - Validar los datos de entrada en los DTO (Bean Validation) antes de llegar al servicio.
 - Al arrancar, cada microservicio carga sus datos desde `docs/dataset/`.
+- **CORS:** cada microservicio permite peticiones desde los orígenes del frontend
+  web, leídos de la variable de entorno `CORS_ORIGINS` (lista separada por comas;
+  en local: `http://localhost:5173`). Se configura en `config/` junto a la
+  seguridad. En el servidor publicado, Nginx sirve la web y la API en la misma
+  dirección, así que CORS no interviene.
 
 ## 5. Configuración y secretos
 
 - Los datos de conexión a MySQL se leen desde variables de entorno:
   `DB_URL`, `DB_USER`, `DB_PASSWORD`. Los datos de JWT, desde `JWT_SECRET` y
-  `JWT_EXPIRATION` (ver sección 7).
+  `JWT_EXPIRATION` (ver sección 7). Los orígenes permitidos de la web, desde
+  `CORS_ORIGINS`.
 - `application.properties` solo contiene referencias a esas variables
   (ejemplo: `spring.datasource.password=${DB_PASSWORD}`), nunca valores reales.
 - Incluir un archivo `.env.example` con los nombres de las variables y valores vacíos.
@@ -105,7 +119,7 @@ Dentro del paquete base, separar por capas:
 
 ## 7. Autenticación con JWT (aplica a los tres microservicios)
 
-- Al iniciar sesión correctamente con `POST /auth/login`, `ms-usuarios` devuelve un
+- Al iniciar sesión correctamente con `POST /api/v1/auth/login`, `ms-usuarios` devuelve un
   token JWT firmado que contiene el id, el nombre y el rol del usuario.
 - La app envía ese token en cada petición, en el encabezado HTTP
   `Authorization: Bearer <token>`.
@@ -148,7 +162,13 @@ Dentro del paquete base, separar por capas:
   cuando un relator intenta una acción de coordinador.
 - Las acciones de administración solo se permiten si el token tiene el rol
   `COORDINADOR`; si no, se responde `403`.
-- Única ruta pública (sin token): `POST /auth/login`.
+- Rutas públicas (sin token): `POST /api/v1/auth/login`, `GET /api/v1/salas`
+  (solo salas activas; con `incluirInactivas=true` exige token de coordinador),
+  `GET /api/v1/salas/{id}` y `GET /api/v1/bloques`. Se declaran con `permitAll()`
+  en el `SecurityConfig` de cada microservicio; el resto, `authenticated()`.
+- Renovación: `POST /api/v1/auth/refresh` (ms-usuarios) recibe un token **vigente**
+  y devuelve uno nuevo con la expiración completa, con la misma forma de respuesta
+  que el login. Un token vencido responde `401 TOKEN_INVALIDO`.
 - Si falta el token, está alterado o venció, se responde `401 TOKEN_INVALIDO`.
 
 ## 8. Comandos

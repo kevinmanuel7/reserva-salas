@@ -49,6 +49,16 @@ crear clases, tablas o endpoints.
 - Fechas: texto `AAAA-MM-DD`. Horas: texto `HH:MM` de 24 horas, siempre con dos dígitos.
 - Valores de listas cerradas (`tipo`, `rol`, `estado`): MAYÚSCULAS y sin tildes.
 - El `id` lo asigna la base de datos.
+- Contrato 1 **versión 2** (04/11/2026, ver «Registro de cambios del contrato» en la
+  sección 5 del plan):
+  - Todas las rutas empiezan con `/api/v1` (ejemplo: `POST /api/v1/auth/login`).
+  - Públicas (sin token): `POST /auth/login`, `GET /salas`, `GET /salas/{id}` y
+    `GET /bloques`. Todo lo demás exige token.
+  - Nuevos: `POST /auth/refresh` (renueva el token), `DELETE /salas/{id}` (baja
+    lógica: `activa = false`, nunca borra la fila) y `POST /reservas/lote`
+    (varias reservas en una sola transacción, todo o nada).
+- La misma API la consume también el frontend web del ramo Desarrollo Fullstack II
+  (repositorio `reserva-salas-web`). Un cambio de contrato afecta a la app y a la web.
 - Si este archivo y el plan se contradicen, preguntar antes de programar.
 
 ## 5. Reglas de negocio (decididas con el mandante — no cambiarlas sin aviso)

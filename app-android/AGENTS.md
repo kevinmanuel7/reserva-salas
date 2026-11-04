@@ -68,6 +68,10 @@ Reglas de MVVM:
 | ms-reservas   | 8083   |
 
 - Retrofit se configura con una conexión por microservicio.
+- Contrato 1 versión 2: las URL base terminan en `/api/v1/` (ejemplo:
+  `http://localhost:8081/api/v1/`), así las rutas de las interfaces Retrofit
+  (`auth/login`, `salas`...) no cambian. Se actualizan cuando el backend publique
+  las rutas versionadas.
 - Las URL base no se escriben fijas dentro del código: se definen como
   `buildConfigField` en `app/build.gradle.kts`.
 - El dispositivo llega al backend del computador con `adb reverse`, que redirige un
