@@ -40,4 +40,14 @@ public class AuthService {
 
         return new LoginResponse(jwtService.generarToken(usuario), UsuarioDto.desde(usuario));
     }
+
+    // Para extender la sesión sin volver a pedir contraseña 
+    // Consulta a la BD para actualizar los datos de usuario
+    // Solo se activa antes de que la sesión venza 
+    public LoginResponse refrescar(String idUsuario) {
+        Usuario usuario = usuarioRepository.findById(Long.valueOf(idUsuario))
+                .orElseThrow(CredencialesInvalidasException::new);
+
+        return new LoginResponse(jwtService.generarToken(usuario), UsuarioDto.desde(usuario));
+    }
 }

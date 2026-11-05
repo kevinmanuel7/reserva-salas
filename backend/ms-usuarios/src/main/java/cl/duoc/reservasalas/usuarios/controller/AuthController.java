@@ -4,6 +4,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import cl.duoc.reservasalas.usuarios.dto.LoginRequest;
 import cl.duoc.reservasalas.usuarios.dto.LoginResponse;
@@ -11,7 +13,7 @@ import cl.duoc.reservasalas.usuarios.service.AuthService;
 import jakarta.validation.Valid;
 
 /**
- * Recibe las peticiones de /api. Solo traduce HTTP ↔ servicio; la lógica está en AuthService.
+ * Recibe las peticiones de /api/v1/auth. Solo traduce HTTP ↔ servicio; la lógica está en AuthService.
  */
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -28,5 +30,10 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/refresh")
+    public LoginResponse refresh(@AuthenticationPrincipal Jwt jwt) {
+        return authService.refrescar(jwt.getSubject());
     }
 }
