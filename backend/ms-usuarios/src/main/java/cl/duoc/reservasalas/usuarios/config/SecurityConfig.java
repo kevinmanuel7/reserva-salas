@@ -2,6 +2,7 @@ package cl.duoc.reservasalas.usuarios.config;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import cl.duoc.reservasalas.usuarios.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,15 +36,19 @@ import tools.jackson.databind.ObjectMapper;
 public class SecurityConfig {
 
     private final ObjectMapper objectMapper;
+    private final String[] origenesPermitidos;
 
-    public SecurityConfig(ObjectMapper objectMapper) {
+    public SecurityConfig(ObjectMapper objectMapper,
+                        @Value("${cors.origins}") String[] origenesPermitidos) {
         this.objectMapper = objectMapper;
+        this.origenesPermitidos = origenesPermitidos;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 // CSRF protege formularios con cookies de sesión; aquí no hay cookies ni sesiones.
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(rutas -> rutas
@@ -54,6 +63,20 @@ public class SecurityConfig {
                         .authenticationEntryPoint(tokenInvalido())
                         .accessDeniedHandler(sinPermiso()));
         return http.build();
+    }
+
+    // Reglas de CORS: qué orígenes (la web), métodos y encabezados se aceptan.
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(origenesPermitidos));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+
+        // "/**" = aplicar estas reglas a todas las rutas del servicio.
+        UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();
+        fuente.registerCorsConfiguration("/**", config);
+        return fuente;
     }
 
     // Falta el token, está alterado o venció → 401 TOKEN_INVALIDO.

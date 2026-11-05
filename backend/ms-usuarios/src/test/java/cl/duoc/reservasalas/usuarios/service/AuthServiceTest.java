@@ -111,7 +111,7 @@ class AuthServiceTest {
         when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(CredencialesInvalidasException.class,
-        () -> authService.refrescar("99"));
+                () -> authService.refrescar("99"));
         verify(jwtService, never()).generarToken(any());
     }
 
