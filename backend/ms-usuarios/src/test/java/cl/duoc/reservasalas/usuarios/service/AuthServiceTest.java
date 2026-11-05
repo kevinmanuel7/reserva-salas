@@ -89,4 +89,30 @@ class AuthServiceTest {
                 () -> authService.login(new LoginRequest(EMAIL, "incorrecta")));
         verify(jwtService, never()).generarToken(any());
     }
+
+    @Test
+    void refrescarConUsuarioExistenteDevuelveTokenNuevoYUsuario() {
+        // Arrange: si se busca el id 3, el repositorio falso devuelve al relator,
+        // y el JwtService falso devuelve un token conocido.
+        when(usuarioRepository.findById(3L)).thenReturn(Optional.of(relator));
+        when(jwtService.generarToken(relator)).thenReturn("token-renovado");
+
+        // Act: el id llega como texto, igual que desde jwt.getSubject().
+        LoginResponse respuesta = authService.refrescar("3");
+
+        // Assert: la respuesta trae el token nuevo y los datos del usuario.
+        assertEquals("token-renovado", respuesta.token());
+        assertEquals(3L, respuesta.usuario().id());
+        assertEquals(Rol.RELATOR, respuesta.usuario().rol());
+    }
+
+    @Test
+    void refrescarConUsuarioEliminadoLanzaCredencialesInvalidas() {
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(CredencialesInvalidasException.class,
+        () -> authService.refrescar("99"));
+        verify(jwtService, never()).generarToken(any());
+    }
+
 }
