@@ -12,6 +12,8 @@ import cl.duoc.reservasalas.usuarios.dto.LoginResponse;
 import cl.duoc.reservasalas.usuarios.service.AuthService;
 import jakarta.validation.Valid;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 /**
  * Recibe las peticiones de /api/v1/auth. Solo traduce HTTP ↔ servicio; la lógica está en AuthService.
  */
@@ -32,6 +34,7 @@ public class AuthController {
         return authService.login(request);
     }
 
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/refresh")
     public LoginResponse refresh(@AuthenticationPrincipal Jwt jwt) {
         return authService.refrescar(jwt.getSubject());
