@@ -164,7 +164,8 @@ Dentro del paquete base, separar por capas:
   `COORDINADOR`; si no, se responde `403`.
 - Rutas públicas (sin token): `POST /api/v1/auth/login`, `GET /api/v1/salas`
   (solo salas activas; con `incluirInactivas=true` exige token de coordinador),
-  `GET /api/v1/salas/{id}` y `GET /api/v1/bloques`. Se declaran con `permitAll()`
+  `GET /api/v1/salas/{id}`, `GET /api/v1/bloques` y
+  `GET /api/v1/reservas/disponibilidad`. Se declaran con `permitAll()`
   en el `SecurityConfig` de cada microservicio; el resto, `authenticated()`.
 - Renovación: `POST /api/v1/auth/refresh` (ms-usuarios) recibe un token **vigente**
   y devuelve uno nuevo con la expiración completa, con la misma forma de respuesta

@@ -31,7 +31,7 @@ La app nunca habla directo con MySQL: todo pasa por la API, y ms-reservas consul
 
 | Tema                      | Decisión                                                                                                                                                                                                                                                                  |
 |---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Horarios                  | Bloques fijos de 1 hora, sin pausas entre ellos. Horario predeterminado: 13 bloques, de 08:00 a 21:00. Se define al inicio de cada semestre y el coordinador puede modificarlo (requisitos del mandante, más abajo)                                                       |
+| Horarios                  | Bloques de 55 minutos con 5 minutos de pausa entre uno y otro (08:00–09:00, 09:05–10:00 … 20:05–21:00). Horario predeterminado: 13 bloques, de 08:00 a 21:00. Se define al inicio de cada semestre y el coordinador puede modificarlo (requisitos del mandante, más abajo)                                                       |
 | Inicio de sesión          | Email y contraseña reales, con token JWT renovable. Sin inicio de sesión con Google                                                                                                                                                                                                 |
 | Sin conexión              | Se puede consultar (datos guardados en Room), pero no reservar ni cancelar                                                                                                                                                                                                |
 | Cancelar una reserva      | Cambia su estado a CANCELADA; nunca se borra                                                                                                                                                                                                                              |
@@ -342,23 +342,23 @@ Dos reglas sobre la contraseña:
 
 ### Bloque
 
-Esta tabla es el horario predeterminado. Por requisito del mandante, el coordinador podrá modificar el horario general y el de cada sala (sección 1); el diseño de esa edición está pendiente.
+Esta tabla es el horario predeterminado: 13 bloques con 5 minutos de pausa entre uno y otro, para que un grupo salga antes de que entre el siguiente. Por requisito del mandante, el coordinador podrá modificar el horario general y el de cada sala (sección 1); el diseño de esa edición está pendiente.
 
 | numero | horaInicio | horaFin |
 |--------|------------|---------|
 | 1      | 08:00      | 09:00   |
-| 2      | 09:00      | 10:00   |
-| 3      | 10:00      | 11:00   |
-| 4      | 11:00      | 12:00   |
-| 5      | 12:00      | 13:00   |
-| 6      | 13:00      | 14:00   |
-| 7      | 14:00      | 15:00   |
-| 8      | 15:00      | 16:00   |
-| 9      | 16:00      | 17:00   |
-| 10     | 17:00      | 18:00   |
-| 11     | 18:00      | 19:00   |
-| 12     | 19:00      | 20:00   |
-| 13     | 20:00      | 21:00   |
+| 2      | 09:05      | 10:00   |
+| 3      | 10:05      | 11:00   |
+| 4      | 11:05      | 12:00   |
+| 5      | 12:05      | 13:00   |
+| 6      | 13:05      | 14:00   |
+| 7      | 14:05      | 15:00   |
+| 8      | 15:05      | 16:00   |
+| 9      | 16:05      | 17:00   |
+| 10     | 17:05      | 18:00   |
+| 11     | 18:05      | 19:00   |
+| 12     | 19:05      | 20:00   |
+| 13     | 20:05      | 21:00   |
 
 El bloque 6 (almuerzo) también se puede reservar.
 
@@ -376,7 +376,7 @@ El bloque 6 (almuerzo) también se puede reservar.
 | bloqueFin     | Entero de 1 a 13 | 4                          | Último bloque reservado. Igual o mayor que bloqueInicio                                                |
 | estado        | Lista cerrada    | "ACTIVA"                   | Solo ACTIVA o CANCELADA                                                                                |
 
-Ejemplos: una reserva de un solo bloque tiene bloqueInicio y bloqueFin iguales. Un taller de 3 horas desde las 09:00 tiene bloqueInicio: 2 y bloqueFin: 4 (09:00 a 12:00).
+Ejemplos: una reserva de un solo bloque tiene bloqueInicio y bloqueFin iguales. Un taller de 3 bloques desde las 09:05 tiene bloqueInicio: 2 y bloqueFin: 4 (09:05 a 12:00).
 
 ### Regla de cruce de horario
 
@@ -395,19 +395,21 @@ Dos reservas se cruzan cuando se cumplen **las cuatro** condiciones:
 | Bloques 2 a 4            | Bloques 2 a 4 | Sí      | Mismos bloques                                                  |
 | Bloques 2 a 4            | Bloques 4 a 5 | Sí      | Comparten el bloque 4                                           |
 | Bloques 2 a 4            | Bloques 1 a 6 | Sí      | La nueva contiene a la existente                                |
-| Bloques 2 a 4            | Bloques 5 a 6 | No      | La existente termina a las 12:00 y la nueva empieza a las 12:00 |
+| Bloques 2 a 4            | Bloques 5 a 6 | No      | La existente termina a las 12:00 y la nueva empieza a las 12:05 |
 | Bloques 2 a 4, cancelada | Bloques 2 a 4 | No      | Las canceladas no cuentan                                       |
 
 El backend es quien decide si hay cruce, porque es el único que ve las reservas de todos. La app también revisa antes de enviar, solo para avisar rápido al usuario.
 
 ## 5. Contrato 1: API REST (Backend ↔ Datos de la app)
 
-La API tiene 14 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}` y `GET /api/v1/bloques`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
+La API tiene 15 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}`, `GET /api/v1/bloques` y `GET /api/v1/reservas/disponibilidad`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
 
 ### Registro de cambios del contrato
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
+| 3 | 2026-11-12 | Nuevo `GET /reservas/disponibilidad`, público | La web se puede recorrer sin iniciar sesión: muestra qué bloques están ocupados, sin revelar quién reservó ni para qué |
+| 3 | 2026-11-12 | Bloques con 5 minutos de pausa: 08:00–09:00, 09:05–10:00 … 20:05–21:00 | Alinear el contrato con el diseño del cliente (docs/maqueta/especificacion.md), que ya usan la app y la web |
 | 2 | 2026-11-04 | Todas las rutas llevan el prefijo `/api/v1` | Versionado de la API, exigido en DSY1104 |
 | 2 | 2026-11-04 | `GET /salas`, `GET /salas/{id}` y `GET /bloques` pasan a ser públicos | El frontend web muestra el catálogo antes de iniciar sesión. La app puede seguir enviando el token: el servidor lo acepta igual |
 | 2 | 2026-11-04 | Nuevo `POST /reservas/lote` | Confirmar varias reservas de una vez, todo o nada (página «Mi reserva» de la web) |
@@ -415,7 +417,7 @@ La API tiene 14 endpoints repartidos en 3 microservicios. Todos responden JSON y
 | 2 | 2026-11-04 | Nuevo `POST /auth/refresh` | Renovar el token antes de que venza, sin volver a escribir la contraseña |
 | 1 | 2026-09-30 | Versión inicial: 11 endpoints | — |
 
-Decisión del líder, acordada con el equipo. Se mantienen todas las reglas de la versión 1 que no aparecen en esta tabla.
+Decisiones del líder, acordadas con el equipo. Se mantienen todas las reglas anteriores que no aparecen en esta tabla.
 
 ### Conceptos
 
@@ -500,10 +502,13 @@ DELETE /salas/{id} **no borra la fila**: la marca como inactiva (regla «Retirar
 |--------|---------------------------------|-----------------------------------------|---------------------------------------------------|-----------------------------------------------------|
 | GET    | /api/v1/bloques                 | Público                                 | Nada                                              | 200 con los 13 bloques                              |
 | GET    | /api/v1/reservas                | Ambos                                   | Filtros: fecha (obligatorio), salaId (opcional)   | 200 con las reservas ACTIVA que cumplen los filtros |
+| GET    | /api/v1/reservas/disponibilidad | Público                                 | Filtros: fecha (obligatorio), salaId (opcional)   | 200 con salaId, fecha, bloqueInicio y bloqueFin de cada reserva ACTIVA (sin usuarioId, nombreRelator ni actividad) · 400 sin fecha |
 | GET    | /api/v1/reservas/mias           | Ambos                                   | Filtro opcional: fecha                            | 200 con las reservas ACTIVA del usuario del token   |
 | POST   | /api/v1/reservas                | Ambos                                   | salaId, fecha, bloqueInicio, bloqueFin, actividad | 201 con la reserva creada · 400 · 404 · 409         |
 | POST   | /api/v1/reservas/lote           | Ambos                                   | Lista de reservas, cada una con los campos de POST /reservas | 201 con la lista de reservas creadas · 400 · 404 · 409 |
 | PUT    | /api/v1/reservas/{id}/cancelar  | El dueño de la reserva o el coordinador | Nada                                              | 200 con la reserva en estado CANCELADA · 403 · 404  |
+
+GET /reservas/disponibilidad es la versión pública de GET /reservas: entrega solo lo necesario para pintar los bloques ocupados. Quién reservó y para qué sigue exigiendo token.
 
 POST /reservas y POST /reservas/lote **no reciben usuarioId**: el servidor lo obtiene del token. Si la app lo enviara, cualquiera podría reservar a nombre de otra persona cambiando ese número.
 
@@ -639,7 +644,7 @@ Interfaz debe diseñar cómo se ve cada estado que aparece en la pantalla:
 
 1.  **Sin conexión se consulta, pero no se reserva.** Sin internet, las pantallas muestran los datos guardados en Room con el aviso «Sin conexión: mostrando datos guardados». Crear o cancelar reservas exige conexión.
 
-2.  **Bloques como horas.** El usuario nunca ve números de bloque: se muestran como horas. Bloques 2 a 4 = «09:00 – 12:00».
+2.  **Bloques como horas.** El usuario nunca ve números de bloque: se muestran como horas. Bloques 2 a 4 = «09:05 – 12:00».
 
 3.  **Sesión vencida.** Si cualquier pedido responde 401, la app borra la sesión y vuelve a Login con el mensaje «Tu sesión expiró».
 
@@ -796,35 +801,35 @@ Dos semanas hábiles, del lunes 2 al viernes 13 de noviembre de 2026. Incluyen a
 | id  | fecha      | salaId | bloques | horario       | usuarioId | actividad                         | estado    |
 |-----|------------|--------|---------|---------------|-----------|-----------------------------------|-----------|
 | 1   | 2026-11-02 | 1      | 1 a 3   | 08:00 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
-| 2   | 2026-11-02 | 1      | 4 a 5   | 11:00 – 13:00 | 4         | Python para análisis de datos     | ACTIVA    |
-| 3   | 2026-11-02 | 3      | 2 a 4   | 09:00 – 12:00 | 5         | Liderazgo de equipos              | ACTIVA    |
-| 4   | 2026-11-02 | 7      | 7 a 9   | 14:00 – 17:00 | 6         | Seminario de seguridad laboral    | ACTIVA    |
-| 5   | 2026-11-03 | 2      | 2 a 5   | 09:00 – 13:00 | 7         | Electrónica básica                | ACTIVA    |
-| 6   | 2026-11-03 | 1      | 11 a 13 | 18:00 – 21:00 | 3         | Excel avanzado vespertino         | ACTIVA    |
+| 2   | 2026-11-02 | 1      | 4 a 5   | 11:05 – 13:00 | 4         | Python para análisis de datos     | ACTIVA    |
+| 3   | 2026-11-02 | 3      | 2 a 4   | 09:05 – 12:00 | 5         | Liderazgo de equipos              | ACTIVA    |
+| 4   | 2026-11-02 | 7      | 7 a 9   | 14:05 – 17:00 | 6         | Seminario de seguridad laboral    | ACTIVA    |
+| 5   | 2026-11-03 | 2      | 2 a 5   | 09:05 – 13:00 | 7         | Electrónica básica                | ACTIVA    |
+| 6   | 2026-11-03 | 1      | 11 a 13 | 18:05 – 21:00 | 3         | Excel avanzado vespertino         | ACTIVA    |
 | 7   | 2026-11-03 | 4      | 1 a 2   | 08:00 – 10:00 | 4         | Inducción de nuevos colaboradores | ACTIVA    |
-| 8   | 2026-11-03 | 8      | 6 a 6   | 13:00 – 14:00 | 1         | Reunión de coordinación           | ACTIVA    |
-| 9   | 2026-11-04 | 5      | 2 a 4   | 09:00 – 12:00 | 5         | Comunicación efectiva             | ACTIVA    |
-| 10  | 2026-11-04 | 1      | 2 a 4   | 09:00 – 12:00 | 6         | Power BI inicial                  | CANCELADA |
-| 11  | 2026-11-04 | 1      | 2 a 3   | 09:00 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
-| 12  | 2026-11-04 | 6      | 11 a 12 | 18:00 – 20:00 | 7         | Gestión del tiempo                | ACTIVA    |
+| 8   | 2026-11-03 | 8      | 6 a 6   | 13:05 – 14:00 | 1         | Reunión de coordinación           | ACTIVA    |
+| 9   | 2026-11-04 | 5      | 2 a 4   | 09:05 – 12:00 | 5         | Comunicación efectiva             | ACTIVA    |
+| 10  | 2026-11-04 | 1      | 2 a 4   | 09:05 – 12:00 | 6         | Power BI inicial                  | CANCELADA |
+| 11  | 2026-11-04 | 1      | 2 a 3   | 09:05 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
+| 12  | 2026-11-04 | 6      | 11 a 12 | 18:05 – 20:00 | 7         | Gestión del tiempo                | ACTIVA    |
 | 13  | 2026-11-05 | 7      | 1 a 4   | 08:00 – 12:00 | 4         | Charla de ciberseguridad          | ACTIVA    |
-| 14  | 2026-11-05 | 2      | 7 a 9   | 14:00 – 17:00 | 7         | Electrónica básica                | ACTIVA    |
-| 15  | 2026-11-05 | 3      | 10 a 12 | 17:00 – 20:00 | 5         | Liderazgo de equipos              | ACTIVA    |
-| 16  | 2026-11-06 | 1      | 7 a 10  | 14:00 – 18:00 | 6         | Power BI inicial                  | ACTIVA    |
-| 17  | 2026-11-06 | 4      | 2 a 3   | 09:00 – 11:00 | 3         | Excel básico                      | ACTIVA    |
-| 18  | 2026-11-06 | 8      | 5 a 5   | 12:00 – 13:00 | 1         | Reunión de coordinación           | ACTIVA    |
+| 14  | 2026-11-05 | 2      | 7 a 9   | 14:05 – 17:00 | 7         | Electrónica básica                | ACTIVA    |
+| 15  | 2026-11-05 | 3      | 10 a 12 | 17:05 – 20:00 | 5         | Liderazgo de equipos              | ACTIVA    |
+| 16  | 2026-11-06 | 1      | 7 a 10  | 14:05 – 18:00 | 6         | Power BI inicial                  | ACTIVA    |
+| 17  | 2026-11-06 | 4      | 2 a 3   | 09:05 – 11:00 | 3         | Excel básico                      | ACTIVA    |
+| 18  | 2026-11-06 | 8      | 5 a 5   | 12:05 – 13:00 | 1         | Reunión de coordinación           | ACTIVA    |
 | 19  | 2026-11-09 | 1      | 1 a 3   | 08:00 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
-| 20  | 2026-11-09 | 1      | 4 a 6   | 11:00 – 14:00 | 4         | Python para análisis de datos     | ACTIVA    |
-| 21  | 2026-11-09 | 7      | 11 a 13 | 18:00 – 21:00 | 6         | Seminario de seguridad laboral    | ACTIVA    |
-| 22  | 2026-11-10 | 3      | 2 a 4   | 09:00 – 12:00 | 5         | Comunicación efectiva             | ACTIVA    |
-| 23  | 2026-11-10 | 2      | 2 a 5   | 09:00 – 13:00 | 7         | Electrónica básica                | ACTIVA    |
-| 24  | 2026-11-10 | 6      | 8 a 9   | 15:00 – 17:00 | 3         | Excel básico                      | CANCELADA |
-| 25  | 2026-11-11 | 1      | 7 a 10  | 14:00 – 18:00 | 6         | Power BI inicial                  | ACTIVA    |
+| 20  | 2026-11-09 | 1      | 4 a 6   | 11:05 – 14:00 | 4         | Python para análisis de datos     | ACTIVA    |
+| 21  | 2026-11-09 | 7      | 11 a 13 | 18:05 – 21:00 | 6         | Seminario de seguridad laboral    | ACTIVA    |
+| 22  | 2026-11-10 | 3      | 2 a 4   | 09:05 – 12:00 | 5         | Comunicación efectiva             | ACTIVA    |
+| 23  | 2026-11-10 | 2      | 2 a 5   | 09:05 – 13:00 | 7         | Electrónica básica                | ACTIVA    |
+| 24  | 2026-11-10 | 6      | 8 a 9   | 15:05 – 17:00 | 3         | Excel básico                      | CANCELADA |
+| 25  | 2026-11-11 | 1      | 7 a 10  | 14:05 – 18:00 | 6         | Power BI inicial                  | ACTIVA    |
 | 26  | 2026-11-11 | 5      | 1 a 2   | 08:00 – 10:00 | 4         | Inducción de nuevos colaboradores | ACTIVA    |
-| 27  | 2026-11-12 | 7      | 3 a 6   | 10:00 – 14:00 | 5         | Jornada de liderazgo              | ACTIVA    |
-| 28  | 2026-11-12 | 4      | 11 a 13 | 18:00 – 21:00 | 7         | Gestión del tiempo                | ACTIVA    |
-| 29  | 2026-11-13 | 1      | 2 a 4   | 09:00 – 12:00 | 3         | Excel avanzado                    | ACTIVA    |
-| 30  | 2026-11-13 | 8      | 5 a 5   | 12:00 – 13:00 | 1         | Reunión de coordinación           | ACTIVA    |
+| 27  | 2026-11-12 | 7      | 3 a 6   | 10:05 – 14:00 | 5         | Jornada de liderazgo              | ACTIVA    |
+| 28  | 2026-11-12 | 4      | 11 a 13 | 18:05 – 21:00 | 7         | Gestión del tiempo                | ACTIVA    |
+| 29  | 2026-11-13 | 1      | 2 a 4   | 09:05 – 12:00 | 3         | Excel avanzado                    | ACTIVA    |
+| 30  | 2026-11-13 | 8      | 5 a 5   | 12:05 – 13:00 | 1         | Reunión de coordinación           | ACTIVA    |
 
 En los archivos JSON, la columna «bloques» se guarda como dos campos: bloqueInicio y bloqueFin. La columna «horario» es solo referencia para leer esta tabla; no se guarda.
 
@@ -859,6 +864,8 @@ Backend los guarda en la colección de Postman (docs/postman/). Todos usan el da
 | 21  | Relator 2     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 1, 2026-11-03, bloque 12 a 12 | 409 CRUCE_HORARIO (choca con la reserva 6) y no se guarda ninguna  |
 | 22  | Relator 2     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 2 a 3 | 409 CRUCE_HORARIO: las dos del lote se cruzan entre sí             |
 | 23  | Relator 2     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 3 a 4 | 201 con las 2 reservas creadas                                     |
+| 24  | Nadie         | GET /reservas/disponibilidad?fecha=2026-11-02 sin token  | 200 con salaId, fecha y bloques de las reservas 1 a 4, sin nombre ni actividad |
+| 25  | Nadie         | GET /reservas/disponibilidad sin fecha                   | 400 DATOS_INVALIDOS                                                |
 | 24  | Relator 1     | DELETE /salas/6                                          | 403 SIN_PERMISO                                                    |
 | 25  | Coordinador 1 | DELETE /salas/6                                          | 200 con activa: false; después GET /salas devuelve 7 salas         |
 
@@ -1009,7 +1016,7 @@ Objetivo: que la app guarde datos en el teléfono y detecte cruces por sí misma
 
 ### Fase 4 · Backend · Lidera: Backend (en paralelo desde la Fase 2)
 
-Objetivo: los 14 endpoints del Contrato 1 (versión 2) funcionando y probados con Postman.
+Objetivo: los 15 endpoints del Contrato 1 (versión 3) funcionando y probados con Postman.
 
 **Backend**
 
@@ -1182,7 +1189,7 @@ El proyecto está listo para entregar cuando todos estos puntos están marcados.
 | APK              | Archivo instalador de una app Android                                                                                   |
 | Backend          | La parte del sistema que corre en el servidor: guarda los datos y aplica las reglas                                     |
 | Backlog          | Lista de todas las tareas del proyecto que aún no entran a un sprint                                                    |
-| Bloque           | Cada una de las 13 horas reservables del día, de 08:00 a 21:00                                                          |
+| Bloque           | Cada uno de los 13 periodos reservables del día, de 08:00 a 21:00                                                          |
 | Commit           | Registro guardado de un conjunto de cambios en Git, con un mensaje                                                      |
 | compileSdk       | Versión de las herramientas de Android con que se compila la app. Va en la más reciente                                 |
 | Contrato         | Acuerdo escrito sobre qué datos se intercambian entre dos partes del sistema y con qué forma                            |
