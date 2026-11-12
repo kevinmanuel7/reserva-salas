@@ -1,180 +1,541 @@
+
 package cl.duoc.reservasalas.app.ui.pantallas.reservasdia
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cl.duoc.reservasalas.app.ui.componentes.BarraSuperior
+import cl.duoc.reservasalas.app.ReservaSalasApp
+import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
-import cl.duoc.reservasalas.app.ui.theme.ReservaSalasTheme
+import java.time.Duration
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-val DuocBlack = Color(0xFF2D2926)
-val DuocYellow = Color(0xFFFFB81C)
-val BackgroundGray = Color(0xFFF4F4F6)
+private val FondoReservas = Color(0xFFF2F3F5)
+private val NegroReservas = Color(0xFF2D2927)
+private val AmarilloReservas = Color(0xFFFFB91F)
+private val TextoReservas = Color(0xFF302D2B)
+private val GrisReservas = Color(0xFF605D5A)
+private val BordeReservas = Color(0xFFDADADA)
+private val RojoReservas = Color(0xFFD32F2F)
+private val VerdeReservas = Color(0xFF2E7D32)
+private val CremaReservas = Color(0xFFFFF2CC)
 
-data class ReservaItem(
-    val id: String,
-    val sala: String,
-    val docente: String,
-    val horario: String,
-    val estado: String
-)
-
-/**
- * Reservas (ruta reservasDia). Dueño: Bastián.
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReservasDiaPantalla(
     navegar: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val listaReservas = listOf(
-        ReservaItem("1", "S-101", "Carlos Mendoza", "08:30 - 10:00", "En Uso"),
-        ReservaItem("2", "S-102", "Ana María Silva", "10:15 - 11:45", "Confirmada"),
-        ReservaItem("3", "L-201", "Roberto Gómez", "12:00 - 13:30", "Pendiente"),
-        ReservaItem("4", "S-305", "Patricia Morales", "14:30 - 16:00", "Confirmada")
-    )
+    val app = LocalContext.current.applicationContext as ReservaSalasApp
+    val reservas by app.container.repositorioReservas.reservas.collectAsState()
+
+    var dia by remember {
+        mutableStateOf(app.container.reloj.hoy())
+    }
+
+    var filtro by remember {
+        mutableStateOf("Todas")
+    }
+
+    val ahora = app.container.reloj.ahora()
+    val hoy = ahora.toLocalDate()
+    val horaActual = ahora.toLocalTime()
+
+    val formatoFecha = remember {
+        DateTimeFormatter.ofPattern(
+            "EEEE d 'de' MMMM",
+            Locale.forLanguageTag("es-CL")
+        )
+    }
+
+    val fechaTexto = dia.format(formatoFecha)
+        .replaceFirstChar { it.uppercase() }
+
+    val reservasDelDia = reservas
+        .filter { it.fecha == dia }
+        .sortedBy { it.horaInicio }
+
+    val visibles = reservasDelDia.filter { reserva ->
+        val sinCheckin = reserva.estado == EstadoReserva.RESERVADA &&
+                (
+                        dia.isBefore(hoy) ||
+                                (
+                                        dia == hoy &&
+                                                horaActual.isAfter(
+                                                    reserva.horaInicio.plusMinutes(15)
+                                                )
+                                        )
+                        )
+
+        when (filtro) {
+            "Reservada" -> reserva.estado == EstadoReserva.RESERVADA
+            "En uso" -> reserva.estado == EstadoReserva.EN_USO
+            "Sin check-in" -> sinCheckin
+            "Verificada" -> reserva.estado == EstadoReserva.VERIFICADA
+            else -> true
+        }
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(BackgroundGray)
+            .background(FondoReservas)
     ) {
-        // Pantalla principal (de la barra inferior): sin flecha atrás, muestra el logo.
-        BarraSuperior(titulo = "Reservas del Día")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(66.dp)
+                .background(NegroReservas)
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                color = Color.Transparent,
+                border = BorderStroke(
+                    1.dp,
+                    Color.White.copy(alpha = 0.4f)
+                ),
+                shape = RoundedCornerShape(4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(96.dp)
+                        .height(38.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Logo Duoc UC",
+                        fontSize = 11.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+
+            Text(
+                text = "Reservas",
+                fontSize = 23.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .background(AmarilloReservas)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(
+                    horizontal = 16.dp,
+                    vertical = 12.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "‹",
+                fontSize = 38.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextoReservas,
+                modifier = Modifier
+                    .clickable {
+                        dia = dia.minusDays(1)
+                    }
+                    .padding(horizontal = 10.dp)
+            )
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = if (dia == hoy) "Hoy" else {
+                        dia.format(
+                            DateTimeFormatter.ofPattern(
+                                "EEEE",
+                                Locale.forLanguageTag("es-CL")
+                            )
+                        ).replaceFirstChar { it.uppercase() }
+                    },
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextoReservas
+                )
+
+                Text(
+                    text = fechaTexto,
+                    fontSize = 15.sp,
+                    color = GrisReservas
+                )
+            }
+
+            Text(
+                text = "›",
+                fontSize = 38.sp,
+                fontWeight = FontWeight.Medium,
+                color = TextoReservas,
+                modifier = Modifier
+                    .clickable {
+                        dia = dia.plusDays(1)
+                    }
+                    .padding(horizontal = 10.dp)
+            )
+        }
+
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = BordeReservas
+        )
 
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 12.dp,
+                bottom = 24.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Text(
-                    text = "Programación Diaria",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DuocBlack
-                )
-                Text(
-                    text = "Salas reservadas para la jornada de hoy",
-                    fontSize = 14.sp,
-                    color = Color.Gray
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                    ) {
+                        FiltroReserva(
+                            texto = "Todas",
+                            seleccionado = filtro == "Todas",
+                            alPresionar = {
+                                filtro = "Todas"
+                            }
+                        )
+
+                        FiltroReserva(
+                            texto = "Reservada",
+                            seleccionado = filtro == "Reservada",
+                            alPresionar = {
+                                filtro = "Reservada"
+                            }
+                        )
+
+                        FiltroReserva(
+                            texto = "En uso",
+                            seleccionado = filtro == "En uso",
+                            alPresionar = {
+                                filtro = "En uso"
+                            }
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                    ) {
+                        FiltroReserva(
+                            texto = "Sin check-in",
+                            seleccionado = filtro == "Sin check-in",
+                            alPresionar = {
+                                filtro = "Sin check-in"
+                            }
+                        )
+
+                        FiltroReserva(
+                            texto = "Verificada",
+                            seleccionado = filtro == "Verificada",
+                            alPresionar = {
+                                filtro = "Verificada"
+                            }
+                        )
+                    }
+                }
             }
 
-            items(listaReservas) { reserva ->
-                ReservaCard(
-                    reserva = reserva,
-                    onClickDetalle = { navegar(Rutas.supervisar(reserva.id.toInt())) }
+            item {
+                Text(
+                    text = if (visibles.size == 1) {
+                        "1 reserva"
+                    } else {
+                        "${visibles.size} reservas"
+                    },
+                    modifier = Modifier.padding(
+                        top = 4.dp,
+                        bottom = 2.dp
+                    ),
+                    fontSize = 15.sp,
+                    color = GrisReservas
                 )
+            }
+
+            if (visibles.isEmpty()) {
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(13.dp),
+                        color = Color.White,
+                        border = BorderStroke(
+                            1.dp,
+                            BordeReservas
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "No hay reservas",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextoReservas
+                            )
+
+                            Text(
+                                text = "No se encontraron reservas para esta fecha y filtro.",
+                                fontSize = 14.sp,
+                                color = GrisReservas
+                            )
+                        }
+                    }
+                }
+            }
+
+            items(
+                items = visibles,
+                key = { it.id }
+            ) { reserva ->
+                val sinCheckin = reserva.estado == EstadoReserva.RESERVADA &&
+                        (
+                                dia.isBefore(hoy) ||
+                                        (
+                                                dia == hoy &&
+                                                        horaActual.isAfter(
+                                                            reserva.horaInicio.plusMinutes(15)
+                                                        )
+                                                )
+                                )
+
+                val minutosSinCheckin = if (
+                    sinCheckin && dia == hoy
+                ) {
+                    Duration.between(
+                        reserva.horaInicio,
+                        horaActual
+                    ).toMinutes().coerceAtLeast(0)
+                } else {
+                    0L
+                }
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            navegar(
+                                Rutas.supervisar(reserva.id)
+                            )
+                        },
+                    shape = RoundedCornerShape(13.dp),
+                    color = Color.White,
+                    border = BorderStroke(
+                        1.dp,
+                        BordeReservas
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (sinCheckin) {
+                            Box(
+                                modifier = Modifier
+                                    .width(5.dp)
+                                    .height(84.dp)
+                                    .background(RojoReservas)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(15.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "${reserva.horaInicio}–${reserva.horaFin} · ${reserva.codigoSala}",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextoReservas,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Text(
+                                    text = if (sinCheckin) {
+                                        if (dia == hoy) {
+                                            "${reserva.nombreUsuario} · sin check-in hace $minutosSinCheckin min"
+                                        } else {
+                                            "${reserva.nombreUsuario} · sin check-in"
+                                        }
+                                    } else {
+                                        reserva.nombreUsuario
+                                    },
+                                    fontSize = 13.sp,
+                                    color = GrisReservas,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            EstadoReservaEtiqueta(
+                                estado = reserva.estado
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ReservaCard(
-    reserva: ReservaItem,
-    onClickDetalle: () -> Unit
+private fun FiltroReserva(
+    texto: String,
+    seleccionado: Boolean,
+    alPresionar: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Sala ${reserva.sala}",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DuocBlack
-                )
-                EstadoChip(estado = reserva.estado)
-            }
-
-            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
-
-            Text(
-                text = "Docente: ${reserva.docente}",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.DarkGray
-            )
-
-            Text(
-                text = "Horario: ${reserva.horario}",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-
-            Button(
-                onClick = onClickDetalle,
-                modifier = Modifier.align(Alignment.End),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = DuocYellow,
-                    contentColor = DuocBlack
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = "Ver Supervisión",
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EstadoChip(estado: String) {
-    val (bgColor, textColor) = when (estado) {
-        "En Uso" -> Color(0xFFE3F2FD) to Color(0xFF1976D2)
-        "Confirmada" -> Color(0xFFE8F5E9) to Color(0xFF388E3C)
-        else -> Color(0xFFFFF3E0) to Color(0xFFF57C00)
-    }
-
     Surface(
-        color = bgColor,
-        shape = RoundedCornerShape(16.dp)
+        modifier = Modifier.clickable {
+            alPresionar()
+        },
+        shape = RoundedCornerShape(50),
+        color = if (seleccionado) {
+            NegroReservas
+        } else {
+            Color.White
+        },
+        border = BorderStroke(
+            1.dp,
+            if (seleccionado) {
+                NegroReservas
+            } else {
+                BordeReservas
+            }
+        )
     ) {
         Text(
-            text = estado,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            color = textColor,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold
+            text = texto,
+            modifier = Modifier.padding(
+                horizontal = 13.dp,
+                vertical = 10.dp
+            ),
+            fontSize = 13.sp,
+            fontWeight = if (seleccionado) {
+                FontWeight.Bold
+            } else {
+                FontWeight.Normal
+            },
+            color = if (seleccionado) {
+                Color.White
+            } else {
+                TextoReservas
+            }
         )
     }
 }
 
-@Preview(showBackground = true, heightDp = 800)
 @Composable
-private fun ReservasDiaPantallaPreview() {
-    ReservaSalasTheme {
-        ReservasDiaPantalla(navegar = {})
+private fun EstadoReservaEtiqueta(
+    estado: EstadoReserva
+) {
+    val texto: String
+    val fondo: Color
+    val colorTexto: Color
+    val borde: Color?
+
+    when (estado) {
+        EstadoReserva.VERIFICADA -> {
+            texto = "Verificada"
+            fondo = Color.White
+            colorTexto = VerdeReservas
+            borde = VerdeReservas
+        }
+
+        EstadoReserva.EN_USO -> {
+            texto = "En uso"
+            fondo = VerdeReservas
+            colorTexto = Color.White
+            borde = null
+        }
+
+        EstadoReserva.RESERVADA -> {
+            texto = "Reservada"
+            fondo = CremaReservas
+            colorTexto = TextoReservas
+            borde = null
+        }
+
+        EstadoReserva.CANCELADA -> {
+            texto = "Cancelada"
+            fondo = Color(0xFFFFE5E5)
+            colorTexto = RojoReservas
+            borde = null
+        }
+
+        EstadoReserva.NO_PRESENTADO -> {
+            texto = "No presentado"
+            fondo = Color(0xFFFFE5E5)
+            colorTexto = RojoReservas
+            borde = null
+        }
+
+        else -> {
+            texto = estado.texto
+            fondo = FondoReservas
+            colorTexto = TextoReservas
+            borde = null
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = fondo,
+        border = borde?.let {
+            BorderStroke(1.dp, it)
+        }
+    ) {
+        Text(
+            text = texto,
+            modifier = Modifier.padding(
+                horizontal = 10.dp,
+                vertical = 5.dp
+            ),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = colorTexto,
+            maxLines = 1
+        )
     }
 }

@@ -120,16 +120,16 @@ class RepositorioReservasFalso(private val reloj: Reloj) : RepositorioReservas {
     }
 
     override suspend fun cancelar(id: Int) =
-        cambiar(id) { it.copy(estado = EstadoReserva.CANCELADA) }
+        cambiar(id) { if (it.sePuedeCancelar(reloj.ahora())) it.copy(estado = EstadoReserva.CANCELADA) else it }
 
     override suspend fun registrarCheckIn(id: Int, hora: LocalTime) =
         cambiar(id) { it.copy(estado = EstadoReserva.EN_USO, horaCheckIn = hora) }
 
     override suspend fun marcarVerificada(id: Int) =
-        cambiar(id) { it.copy(estado = EstadoReserva.VERIFICADA) }
+        cambiar(id) { if (it.estado == EstadoReserva.EN_USO) it.copy(estado = EstadoReserva.VERIFICADA) else it }
 
     override suspend fun marcarNoPresentado(id: Int) =
-        cambiar(id) { it.copy(estado = EstadoReserva.NO_PRESENTADO) }
+        cambiar(id) { if (it.sinCheckIn(reloj.ahora())) it.copy(estado = EstadoReserva.NO_PRESENTADO) else it }
 
     /** Aplica [cambio] solo a la reserva con ese [id]. */
     private suspend fun cambiar(id: Int, cambio: (Reserva) -> Reserva) {

@@ -203,9 +203,8 @@ private fun NavHostController.navegarA(ruta: String, rol: Rol?) {
             popUpTo(graph.id) { inclusive = true }
         }
         rol != null && ruta in rutasBarra -> navigate(ruta) {
-            popUpTo(Rutas.inicioSegunRol(rol)) { saveState = true }
+            popUpTo(Rutas.inicioSegunRol(rol))
             launchSingleTop = true
-            restoreState = true
         }
         ruta.startsWith("reservaConfirmada/") -> navigate(ruta) {
             popUpTo(Rutas.RESERVAR) { inclusive = true }

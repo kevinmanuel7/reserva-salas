@@ -1,33 +1,36 @@
+
 package cl.duoc.reservasalas.app.ui.pantallas.detallereserva
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import cl.duoc.reservasalas.app.ui.componentes.BotonPeligro
-import cl.duoc.reservasalas.app.ui.componentes.BotonPrincipal
+import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+private val FondoDetalleReserva = Color(0xFFF2F3F5)
+private val OscuroDetalleReserva = Color(0xFF2D2927)
+private val AmarilloDetalleReserva = Color(0xFFFFB91F)
+private val AmarilloSuaveDetalle = Color(0xFFFFF2C9)
+private val TextoDetalleReserva = Color(0xFF302D2B)
+private val SecundarioDetalleReserva = Color(0xFF605D5A)
+private val BordeDetalleReserva = Color(0xFFDADADA)
+private val RojoDetalleReserva = Color(0xFFD32F2F)
 
 @Composable
 fun DetalleReservaPantalla(
@@ -46,154 +49,390 @@ fun DetalleReservaPantalla(
     val reserva = reservas.find { it.id == idReserva }
     val sala = salas.find { it.codigo == reserva?.codigoSala }
 
-    var mostrarDialogoCancelar by remember { mutableStateOf(false) }
+    var mostrarDialogoCancelar by remember {
+        mutableStateOf(false)
+    }
 
     val formatoFecha = DateTimeFormatter.ofPattern(
-        "EEEE d 'de' MMMM 'de' yyyy",
+        "EEEE d 'de' MMMM",
+        Locale.forLanguageTag("es-CL")
+    )
+
+    val formatoFechaCorta = DateTimeFormatter.ofPattern(
+        "EEEE d",
         Locale.forLanguageTag("es-CL")
     )
 
     val formatoHora = DateTimeFormatter.ofPattern("HH:mm")
 
+    val ahora = LocalDateTime.now()
+
+    val inicioReserva = reserva?.let {
+        LocalDateTime.of(it.fecha, it.horaInicio)
+    }
+
+    val finReserva = reserva?.let {
+        LocalDateTime.of(it.fecha, it.horaFin)
+    }
+
+    val inicioCheckIn = inicioReserva?.minusMinutes(15)
+    val finCheckIn = inicioReserva?.plusMinutes(15)
+
+    val esReservada = reserva?.estado == EstadoReserva.RESERVADA
+
+    val checkInDisponible = reserva != null &&
+            esReservada &&
+            viewModel.checkInHabilitado(reserva)
+
+    val reservaFinalizada = finReserva != null &&
+            ahora.isAfter(finReserva)
+
+    val mostrarAviso = reserva != null &&
+            esReservada &&
+            !reservaFinalizada &&
+            inicioCheckIn != null &&
+            finCheckIn != null
+
+    val textoAviso = if (mostrarAviso) {
+        when {
+            ahora.isBefore(inicioCheckIn) -> {
+                "Check-in disponible desde las ${
+                    inicioCheckIn.format(formatoHora)
+                }."
+            }
+
+            !ahora.isAfter(finCheckIn) -> {
+                "Check-in disponible ahora. Se cierra a las ${
+                    finCheckIn.format(formatoHora)
+                }."
+            }
+
+            else -> {
+                "El plazo para realizar el check-in ha finalizado."
+            }
+        }
+    } else {
+        ""
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .background(FondoDetalleReserva)
     ) {
-        TextButton(
-            onClick = {
-                volver()
-            }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(OscuroDetalleReserva)
         ) {
-            Text("← Volver")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(74.dp)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "‹",
+                    color = Color.White,
+                    fontSize = 38.sp,
+                    modifier = Modifier.clickable {
+                        volver()
+                    }
+                )
+
+                Text(
+                    text = if (reserva != null) {
+                        "Reserva N.º ${reserva.id}"
+                    } else {
+                        "Detalle de reserva"
+                    },
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(5.dp)
+                    .background(AmarilloDetalleReserva)
+            )
         }
 
-        Text(
-            text = "Detalle de reserva",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-
         if (reserva == null) {
-            Text(
-                text = "No se encontró la reserva",
-                color = MaterialTheme.colorScheme.error
-            )
-
-            BotonPrincipal(
-                texto = "Ir a Mi agenda",
-                alPresionar = {
-                    navegar(Rutas.AGENDA)
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
-            Card(
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Text(
+                    text = "No se encontró la reserva",
+                    color = RojoDetalleReserva,
+                    fontSize = 17.sp
+                )
+
+                Button(
+                    onClick = {
+                        navegar(Rutas.AGENDA)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AmarilloDetalleReserva,
+                        contentColor = TextoDetalleReserva
+                    )
                 ) {
-                    Text(
-                        text = "Reserva #${reserva.id}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                    Text("Ir a Mi agenda")
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        horizontal = 16.dp,
+                        vertical = 20.dp
+                    ),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color.White,
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        BordeDetalleReserva
                     )
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = reserva.codigoSala,
+                                    fontSize = 30.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = TextoDetalleReserva
+                                )
 
-                    Text(
-                        text = "Estado: ${reserva.estado.texto}",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
+                                Text(
+                                    text = sala?.nombre
+                                        ?: reserva.codigoSala,
+                                    fontSize = 17.sp,
+                                    color = SecundarioDetalleReserva
+                                )
+                            }
 
-                    HorizontalDivider()
+                            Spacer(modifier = Modifier.width(8.dp))
 
-                    Text(
-                        text = "Información de la sala",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = AmarilloSuaveDetalle
+                            ) {
+                                Text(
+                                    text = reserva.estado.texto,
+                                    modifier = Modifier.padding(
+                                        horizontal = 12.dp,
+                                        vertical = 6.dp
+                                    ),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextoDetalleReserva
+                                )
+                            }
+                        }
 
-                    Text(
-                        text = "Sala: ${sala?.nombre ?: reserva.codigoSala}"
-                    )
-
-                    Text(
-                        text = "Código: ${reserva.codigoSala}"
-                    )
-
-                    if (sala != null) {
-                        Text(
-                            text = "Ubicación: ${sala.ubicacion}"
+                        HorizontalDivider(
+                            color = BordeDetalleReserva
                         )
 
-                        Text(
-                            text = "Capacidad: ${sala.capacidad} personas"
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(18.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    DatoDetalleReserva(
+                                        etiqueta = "Fecha",
+                                        valor = if (
+                                            reserva.fecha == ahora.toLocalDate()
+                                        ) {
+                                            "Hoy, ${
+                                                reserva.fecha
+                                                    .format(formatoFechaCorta)
+                                            }"
+                                        } else {
+                                            reserva.fecha
+                                                .format(formatoFechaCorta)
+                                                .replaceFirstChar {
+                                                    it.uppercase()
+                                                }
+                                        }
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    DatoDetalleReserva(
+                                        etiqueta = "Horario",
+                                        valor = "${
+                                            reserva.horaInicio.format(formatoHora)
+                                        }–${
+                                            reserva.horaFin.format(formatoHora)
+                                        }"
+                                    )
+                                }
+                            }
+
+                            DatoDetalleReserva(
+                                etiqueta = "Motivo",
+                                valor = reserva.motivo.ifBlank {
+                                    "Sin motivo especificado"
+                                }
+                            )
+
+                            DatoDetalleReserva(
+                                etiqueta = "Creada",
+                                valor = reserva.creada
+                                    .format(formatoFecha)
+                                    .replaceFirstChar {
+                                        it.uppercase()
+                                    } + ", " +
+                                        reserva.creada.format(formatoHora)
+                            )
+                        }
                     }
+                }
 
-                    HorizontalDivider()
+                if (mostrarAviso) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = AmarilloSuaveDetalle,
+                        border = BorderStroke(
+                            1.dp,
+                            AmarilloDetalleReserva
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "◷",
+                                fontSize = 30.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextoDetalleReserva
+                            )
 
-                    Text(
-                        text = "Información de la reserva",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "Fecha: ${
-                            reserva.fecha.format(formatoFecha)
-                                .replaceFirstChar { it.uppercase() }
-                        }"
-                    )
-
-                    Text(
-                        text = "Horario: ${reserva.horaInicio.format(formatoHora)} a ${reserva.horaFin.format(formatoHora)}"
-                    )
-
-                    Text(
-                        text = "Cantidad de bloques: ${reserva.cantidadBloques}"
-                    )
-
-                    Text(
-                        text = "Motivo: ${reserva.motivo}"
-                    )
+                            Text(
+                                text = textoAviso,
+                                fontSize = 16.sp,
+                                lineHeight = 23.sp,
+                                color = TextoDetalleReserva
+                            )
+                        }
+                    }
                 }
             }
 
-            if (viewModel.checkInHabilitado(reserva)) {
-                BotonPrincipal(
-                    texto = "Hacer check-in",
-                    alPresionar = { navegar(Rutas.checkin(reserva.id)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            if (
+                checkInDisponible ||
+                viewModel.sePuedeCancelar(reserva)
+            ) {
+                Surface(
+                    color = Color.White,
+                    shadowElevation = 3.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (checkInDisponible) {
+                            Button(
+                                onClick = {
+                                    navegar(
+                                        Rutas.checkin(reserva.id)
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = AmarilloDetalleReserva,
+                                    contentColor = TextoDetalleReserva
+                                )
+                            ) {
+                                Text(
+                                    text = "▦  Hacer check-in",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
 
-            if (viewModel.sePuedeCancelar(reserva)) {
-                BotonPeligro(
-                    texto = "Cancelar reserva",
-                    alPresionar = { mostrarDialogoCancelar = true },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                        if (viewModel.sePuedeCancelar(reserva)) {
+                            OutlinedButton(
+                                onClick = {
+                                    mostrarDialogoCancelar = true
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(
+                                    1.dp,
+                                    RojoDetalleReserva
+                                )
+                            ) {
+                                Text(
+                                    text = "Cancelar reserva",
+                                    color = RojoDetalleReserva,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
             }
-
-            BotonPrincipal(
-                texto = "Volver a Mi agenda",
-                alPresionar = {
-                    volver()
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
 
             if (mostrarDialogoCancelar) {
                 AlertDialog(
-                    onDismissRequest = { mostrarDialogoCancelar = false },
-                    title = { Text("¿Cancelar reserva?") },
+                    onDismissRequest = {
+                        mostrarDialogoCancelar = false
+                    },
+                    title = {
+                        Text("¿Cancelar reserva?")
+                    },
                     text = {
-                        Text("La sala ${reserva.codigoSala} quedará libre de ${reserva.horario}. Esta acción no se puede deshacer.")
+                        Text(
+                            "La sala ${reserva.codigoSala} quedará libre de ${reserva.horario}. Esta acción no se puede deshacer."
+                        )
                     },
                     confirmButton = {
                         TextButton(
@@ -202,16 +441,46 @@ fun DetalleReservaPantalla(
                                 mostrarDialogoCancelar = false
                             }
                         ) {
-                            Text("Sí, cancelar", color = MaterialTheme.colorScheme.error)
+                            Text(
+                                text = "Sí, cancelar",
+                                color = RojoDetalleReserva
+                            )
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { mostrarDialogoCancelar = false }) {
+                        TextButton(
+                            onClick = {
+                                mostrarDialogoCancelar = false
+                            }
+                        ) {
                             Text("No")
                         }
                     }
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun DatoDetalleReserva(
+    etiqueta: String,
+    valor: String
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = etiqueta,
+            color = SecundarioDetalleReserva,
+            fontSize = 14.sp
+        )
+
+        Text(
+            text = valor,
+            color = TextoDetalleReserva,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }

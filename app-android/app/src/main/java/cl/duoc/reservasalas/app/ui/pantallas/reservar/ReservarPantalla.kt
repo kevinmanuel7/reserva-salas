@@ -2,39 +2,39 @@
 package cl.duoc.reservasalas.app.ui.pantallas.reservar
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.reservasalas.app.data.modelo.Bloque
+import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
 import cl.duoc.reservasalas.app.data.repository.ResultadoReserva
-import cl.duoc.reservasalas.app.ui.componentes.BotonPrincipal
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+private val FondoReserva = Color(0xFFF2F3F5)
+private val OscuroReserva = Color(0xFF2D2927)
+private val AmarilloReserva = Color(0xFFFFB91F)
+private val TextoReserva = Color(0xFF302D2B)
+private val SecundarioReserva = Color(0xFF605D5A)
+private val BordeReserva = Color(0xFFDADADA)
+private val GrisReserva = Color(0xFFE0E0E0)
 
 @Composable
 fun ReservarPantalla(
@@ -74,17 +74,26 @@ fun ReservarPantalla(
         mutableStateOf(false)
     }
 
-    val formatoFecha = remember {
+    val fechas = remember(hoy) {
+        (0..14).map { hoy.plusDays(it.toLong()) }
+    }
+
+    val formatoDia = remember {
         DateTimeFormatter.ofPattern(
-            "EEE d MMM",
+            "EEE",
             Locale("es", "CL")
         )
     }
 
-    val fechas = remember(hoy) {
-        (0..14).map { dias ->
-            hoy.plusDays(dias.toLong())
-        }
+    val formatoFechaResumen = remember {
+        DateTimeFormatter.ofPattern(
+            "EEEE d",
+            Locale("es", "CL")
+        )
+    }
+
+    val formatoHora = remember {
+        DateTimeFormatter.ofPattern("HH:mm")
     }
 
     val bloques = if (sala != null) {
@@ -95,7 +104,8 @@ fun ReservarPantalla(
 
     val reservasDelDia = reservas.filter { reserva ->
         reserva.codigoSala == codigo &&
-                reserva.fecha == fechaSeleccionada
+                reserva.fecha == fechaSeleccionada &&
+                reserva.estado != EstadoReserva.CANCELADA
     }
 
     fun bloqueDisponible(bloque: Bloque): Boolean {
@@ -104,7 +114,9 @@ fun ReservarPantalla(
         }
 
         val pasado = fechaSeleccionada == hoy &&
-                !bloque.inicio.isAfter(viewModel.reloj.ahora().toLocalTime())
+                !bloque.inicio.isAfter(
+                    viewModel.reloj.ahora().toLocalTime()
+                )
 
         return !ocupado && !pasado
     }
@@ -113,12 +125,14 @@ fun ReservarPantalla(
         mensajeError = null
 
         if (bloque in bloquesSeleccionados) {
-            bloquesSeleccionados = bloquesSeleccionados - bloque
+            bloquesSeleccionados =
+                bloquesSeleccionados - bloque
             return
         }
 
         if (bloquesSeleccionados.size >= 4) {
-            mensajeError = "Puedes seleccionar como máximo 4 bloques"
+            mensajeError =
+                "Puedes seleccionar como máximo 4 bloques"
             return
         }
 
@@ -128,256 +142,485 @@ fun ReservarPantalla(
             .map { bloques.indexOf(it) }
             .sorted()
 
-        val consecutivos = indices.zipWithNext().all { (anterior, siguiente) ->
-            siguiente == anterior + 1
-        }
+        val consecutivos = indices.zipWithNext()
+            .all { (anterior, siguiente) ->
+                siguiente == anterior + 1
+            }
 
         if (!consecutivos) {
-            mensajeError = "Debes seleccionar bloques consecutivos"
+            mensajeError =
+                "Debes seleccionar bloques consecutivos"
             return
         }
 
-        bloquesSeleccionados = nuevaSeleccion.sortedBy { it.inicio }
+        bloquesSeleccionados =
+            nuevaSeleccion.sortedBy { it.inicio }
+    }
+
+    val seleccionOrdenada =
+        bloquesSeleccionados.sortedBy { it.inicio }
+
+    val resumenHorario = if (seleccionOrdenada.isEmpty()) {
+        "Selecciona entre 1 y 4 bloques"
+    } else {
+        val primero = seleccionOrdenada.first()
+        val ultimo = seleccionOrdenada.last()
+
+        "${primero.inicio.format(formatoHora)}–${
+            ultimo.fin.format(formatoHora)
+        } (${seleccionOrdenada.size} ${
+            if (seleccionOrdenada.size == 1) {
+                "bloque"
+            } else {
+                "bloques"
+            }
+        })"
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .background(FondoReserva)
+            .imePadding()
     ) {
-        TextButton(
-            onClick = volver
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(OscuroReserva)
         ) {
-            Text("← Volver")
-        }
-
-        Text(
-            text = "Reservar sala",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        if (sala == null) {
-            Text("No se encontró la sala")
-        } else {
-            Card(
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(74.dp)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = sala.codigo,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                Text(
+                    text = "‹",
+                    color = Color.White,
+                    fontSize = 38.sp,
+                    modifier = Modifier.clickable {
+                        volver()
+                    }
+                )
 
-                    Text(sala.nombre)
-
-                    Text("Capacidad: ${sala.capacidad} personas")
-                }
+                Text(
+                    text = "Reservar $codigo",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            HorizontalDivider()
-
-            Text(
-                text = "Selecciona una fecha",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(5.dp)
+                    .background(AmarilloReserva)
             )
+        }
 
-            fechas.chunked(3).forEach { grupo ->
+        if (sala == null) {
+            Text(
+                text = "No se encontró la sala",
+                color = TextoReserva,
+                modifier = Modifier.padding(20.dp)
+            )
+        } else {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 18.dp,
+                        bottom = 24.dp
+                    ),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Text(
+                    text = "Elige el día",
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextoReserva
+                )
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(8.dp)
                 ) {
-                    grupo.forEach { fecha ->
-                        val seleccionada = fecha == fechaSeleccionada
-                        val habilitada = fecha.dayOfWeek in horarioGeneral.dias
+                    fechas.forEach { fecha ->
+                        val seleccionada =
+                            fecha == fechaSeleccionada
 
-                        Card(
+                        val habilitada =
+                            fecha.dayOfWeek in horarioGeneral.dias
+
+                        Surface(
                             modifier = Modifier
-                                .weight(1f)
+                                .width(58.dp)
+                                .height(79.dp)
                                 .clickable(enabled = habilitada) {
                                     fechaSeleccionada = fecha
                                     bloquesSeleccionados = emptyList()
                                     mensajeError = null
                                 },
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (seleccionada) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                }
-                            ),
-                            border = if (seleccionada) {
-                                BorderStroke(
-                                    2.dp,
-                                    MaterialTheme.colorScheme.primary
-                                )
+                            color = if (seleccionada) {
+                                AmarilloReserva
                             } else {
-                                null
-                            }
-                        ) {
-                            Text(
-                                text = fecha.format(formatoFecha),
-                                modifier = Modifier.padding(12.dp),
-                                color = if (habilitada) {
-                                    MaterialTheme.colorScheme.onSurface
+                                Color.White
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                if (seleccionada) {
+                                    AmarilloReserva
                                 } else {
-                                    MaterialTheme.colorScheme.onSurface.copy(
-                                        alpha = 0.4f
-                                    )
+                                    BordeReserva
                                 }
                             )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(7.dp),
+                                horizontalAlignment =
+                                    Alignment.CenterHorizontally,
+                                verticalArrangement =
+                                    Arrangement.Center
+                            ) {
+                                Text(
+                                    text = fecha.format(formatoDia)
+                                        .replaceFirstChar {
+                                            it.uppercase()
+                                        },
+                                    color = if (habilitada) {
+                                        TextoReserva
+                                    } else {
+                                        SecundarioReserva.copy(
+                                            alpha = 0.45f
+                                        )
+                                    },
+                                    fontSize = 13.sp
+                                )
+
+                                Text(
+                                    text = fecha.dayOfMonth.toString(),
+                                    color = if (habilitada) {
+                                        TextoReserva
+                                    } else {
+                                        SecundarioReserva.copy(
+                                            alpha = 0.45f
+                                        )
+                                    },
+                                    fontSize = 23.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement =
+                        Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Elige los bloques",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextoReserva
+                    )
+
+                    Text(
+                        text = "De 1 a 4 seguidos",
+                        fontSize = 12.sp,
+                        color = SecundarioReserva
+                    )
+                }
+
+                if (
+                    fechaSeleccionada.dayOfWeek
+                    !in horarioGeneral.dias
+                ) {
+                    Text(
+                        text = "No hay atención en esta fecha",
+                        color = SecundarioReserva
+                    )
+                } else if (bloques.isEmpty()) {
+                    Text(
+                        text = "No hay bloques disponibles",
+                        color = SecundarioReserva
+                    )
+                } else {
+                    Column(
+                        verticalArrangement =
+                            Arrangement.spacedBy(8.dp)
+                    ) {
+                        bloques.chunked(3).forEach { fila ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(8.dp)
+                            ) {
+                                fila.forEach { bloque ->
+                                    val disponible =
+                                        bloqueDisponible(bloque)
+
+                                    val seleccionado =
+                                        bloque in bloquesSeleccionados
+
+                                    val fondo = when {
+                                        seleccionado -> AmarilloReserva
+                                        !disponible -> GrisReserva
+                                        else -> Color.White
+                                    }
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(52.dp)
+                                            .clickable(
+                                                enabled = disponible &&
+                                                        !guardando
+                                            ) {
+                                                seleccionarBloque(bloque)
+                                            },
+                                        color = fondo,
+                                        shape = RoundedCornerShape(9.dp),
+                                        border = BorderStroke(
+                                            if (seleccionado) {
+                                                2.dp
+                                            } else {
+                                                1.dp
+                                            },
+                                            if (seleccionado) {
+                                                OscuroReserva
+                                            } else {
+                                                BordeReserva
+                                            }
+                                        )
+                                    ) {
+                                        Box(
+                                            contentAlignment =
+                                                Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = bloque.inicio
+                                                    .format(formatoHora),
+                                                color = if (disponible) {
+                                                    TextoReserva
+                                                } else {
+                                                    SecundarioReserva
+                                                },
+                                                fontSize = 16.sp,
+                                                fontWeight =
+                                                    if (seleccionado) {
+                                                        FontWeight.Bold
+                                                    } else {
+                                                        FontWeight.Normal
+                                                    },
+                                                textDecoration =
+                                                    if (!disponible) {
+                                                        TextDecoration.LineThrough
+                                                    } else {
+                                                        TextDecoration.None
+                                                    },
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                }
+
+                                repeat(3 - fila.size) {
+                                    Spacer(
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LeyendaReserva(
+                        color = Color.White,
+                        texto = "Libre"
+                    )
+
+                    LeyendaReserva(
+                        color = GrisReserva,
+                        texto = "Ocupado"
+                    )
+
+                    LeyendaReserva(
+                        color = AmarilloReserva,
+                        texto = "Tu selección"
+                    )
+                }
+
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Motivo (opcional)",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextoReserva
+                    )
+
+                    OutlinedTextField(
+                        value = motivo,
+                        onValueChange = {
+                            motivo = it
+                            mensajeError = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text("Escribe el motivo de la reserva")
+                        },
+                        singleLine = false,
+                        minLines = 2,
+                        maxLines = 3,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = AmarilloReserva,
+                            unfocusedBorderColor = BordeReserva
+                        )
+                    )
+                }
+
+                mensajeError?.let { error ->
+                    Text(
+                        text = error,
+                        color = Color(0xFFD32F2F),
+                        fontSize = 14.sp
+                    )
+                }
             }
 
-            HorizontalDivider()
+            Surface(
+                color = Color.White,
+                shadowElevation = 3.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement =
+                        Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "$codigo · ${
+                            fechaSeleccionada
+                                .format(formatoFechaResumen)
+                                .replaceFirstChar {
+                                    it.uppercase()
+                                }
+                        } · $resumenHorario",
+                        fontSize = 15.sp,
+                        color = TextoReserva
+                    )
 
-            Text(
-                text = "Selecciona los bloques horarios",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+                    Button(
+                        onClick = {
+                            guardando = true
+                            mensajeError = null
 
-            Text(
-                text = "Puedes seleccionar hasta 4 bloques consecutivos",
-                style = MaterialTheme.typography.bodyMedium
-            )
+                            viewModel.crearReserva(
+                                codigoSala = codigo,
+                                fecha = fechaSeleccionada,
+                                bloques = bloquesSeleccionados,
+                                motivo = motivo.trim()
+                            ) { resultado ->
+                                guardando = false
 
-            if (fechaSeleccionada.dayOfWeek !in horarioGeneral.dias) {
-                Text("No hay atención en esta fecha")
-            } else if (bloques.isEmpty()) {
-                Text("No hay bloques disponibles")
-            } else {
-                bloques.forEachIndexed { indice, bloque ->
-                    val disponible = bloqueDisponible(bloque)
-                    val seleccionado = bloque in bloquesSeleccionados
+                                when (resultado) {
+                                    is ResultadoReserva.Exito -> {
+                                        navegar(
+                                            Rutas.reservaConfirmada(
+                                                resultado.reserva.id
+                                            )
+                                        )
+                                    }
 
-                    Card(
+                                    is ResultadoReserva.Error -> {
+                                        mensajeError = resultado.mensaje
+                                    }
+                                }
+                            }
+                        },
+                        enabled = bloquesSeleccionados.isNotEmpty() &&
+                                !guardando &&
+                                bloquesSeleccionados.all {
+                                    bloqueDisponible(it)
+                                },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(enabled = disponible) {
-                                seleccionarBloque(bloque)
-                            },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (seleccionado) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.surfaceVariant
-                            }
-                        ),
-                        border = if (seleccionado) {
-                            BorderStroke(
-                                2.dp,
-                                MaterialTheme.colorScheme.primary
+                            .height(58.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AmarilloReserva,
+                            contentColor = TextoReserva,
+                            disabledContainerColor =
+                                Color(0xFFE7D7A9),
+                            disabledContentColor =
+                                SecundarioReserva
+                        )
+                    ) {
+                        if (guardando) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.dp,
+                                color = TextoReserva
                             )
                         } else {
-                            null
-                        }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
                             Text(
-                                text = "Bloque ${indice + 1}",
+                                text = "Confirmar reserva",
+                                fontSize = 19.sp,
                                 fontWeight = FontWeight.Bold
-                            )
-
-                            Text(bloque.texto)
-
-                            Text(
-                                text = when {
-                                    seleccionado -> "Seleccionado"
-                                    disponible -> "Disponible"
-                                    else -> "No disponible"
-                                },
-                                color = if (disponible) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.error
-                                }
                             )
                         }
                     }
                 }
             }
-
-            HorizontalDivider()
-
-            Text(
-                text = "Motivo de la reserva",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            OutlinedTextField(
-                value = motivo,
-                onValueChange = {
-                    motivo = it
-                    mensajeError = null
-                },
-                label = {
-                    Text("Escribe el motivo")
-                },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
-
-            Text(
-                text = "Bloques seleccionados: ${bloquesSeleccionados.size} de 4"
-            )
-
-            if (mensajeError != null) {
-                Text(
-                    text = mensajeError ?: "",
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-
-            BotonPrincipal(
-                texto = "Confirmar reserva",
-                alPresionar = {
-                    guardando = true
-                    mensajeError = null
-
-                    viewModel.crearReserva(
-                        codigoSala = codigo,
-                        fecha = fechaSeleccionada,
-                        bloques = bloquesSeleccionados,
-                        motivo = motivo.trim()
-                    ) { resultado ->
-                        guardando = false
-
-                        when (resultado) {
-                            is ResultadoReserva.Exito -> {
-                                navegar(
-                                    Rutas.reservaConfirmada(
-                                        resultado.reserva.id
-                                    )
-                                )
-                            }
-
-                            is ResultadoReserva.Error -> {
-                                mensajeError = resultado.mensaje
-                            }
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                habilitado = bloquesSeleccionados.isNotEmpty() &&
-                        motivo.isNotBlank() &&
-                        !guardando &&
-                        bloquesSeleccionados.all { bloqueDisponible(it) },
-                cargando = guardando
-            )
         }
+    }
+}
+
+@Composable
+private fun LeyendaReserva(
+    color: Color,
+    texto: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Surface(
+            modifier = Modifier.size(15.dp),
+            color = color,
+            shape = RoundedCornerShape(4.dp),
+            border = BorderStroke(1.dp, BordeReserva)
+        ) {}
+
+        Text(
+            text = texto,
+            color = SecundarioReserva,
+            fontSize = 12.sp
+        )
     }
 }
