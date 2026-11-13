@@ -82,6 +82,10 @@ fun AgendaPantalla(
         filtradas
     }
 
+    val reservasAgrupadas = reservasOrdenadas.groupBy {
+        it.fecha
+    }
+
     val formatoFecha = DateTimeFormatter.ofPattern(
         "EEEE d 'de' MMMM",
         Locale.forLanguageTag("es-CL")
@@ -203,39 +207,39 @@ fun AgendaPantalla(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(
-                    items = reservasOrdenadas,
-                    key = { it.id }
-                ) { reserva ->
-                    val nombreSala = salas.find {
-                        it.codigo == reserva.codigoSala
-                    }?.nombre ?: "Sala"
-
-                    val etiquetaFecha = when (reserva.fecha) {
+                reservasAgrupadas.forEach { (fecha, reservasDelDia) ->
+                    val etiquetaFecha = when (fecha) {
                         hoy -> "HOY"
                         hoy.plusDays(1) -> "MAÑANA"
-                        else -> reserva.fecha
+                        else -> fecha
                             .format(formatoFecha)
                             .uppercase()
                     }
 
-                    val colorEstado = when (reserva.estado) {
-                        EstadoReserva.RESERVADA -> AmarilloAgenda
-                        EstadoReserva.EN_USO -> VerdeAgenda
-                        EstadoReserva.VERIFICADA -> VerdeAgenda
-                        EstadoReserva.CANCELADA -> RojoAgenda
-                        EstadoReserva.NO_PRESENTADO -> RojoAgenda
-                    }
-
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    item(key = "fecha-$fecha") {
                         Text(
                             text = etiquetaFecha,
                             color = SecundarioAgenda,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+
+                    items(
+                        items = reservasDelDia,
+                        key = { it.id }
+                    ) { reserva ->
+                        val nombreSala = salas.find {
+                            it.codigo == reserva.codigoSala
+                        }?.nombre ?: "Sala"
+
+                        val colorEstado = when (reserva.estado) {
+                            EstadoReserva.RESERVADA -> AmarilloAgenda
+                            EstadoReserva.EN_USO -> VerdeAgenda
+                            EstadoReserva.VERIFICADA -> VerdeAgenda
+                            EstadoReserva.CANCELADA -> RojoAgenda
+                            EstadoReserva.NO_PRESENTADO -> RojoAgenda
+                        }
 
                         Surface(
                             modifier = Modifier
