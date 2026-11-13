@@ -350,6 +350,26 @@ fun DetalleSalaPantalla(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    Button(
+                        onClick = {
+                            navegar(Rutas.reservar(sala.codigo))
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AmarilloDetalle,
+                            contentColor = TextoDetalle
+                        )
+                    ) {
+                        Text(
+                            text = "Reservar",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     if (coordinador) {
                         OutlinedButton(
                             onClick = {
@@ -359,36 +379,13 @@ fun DetalleSalaPantalla(
                                 .fillMaxWidth()
                                 .height(54.dp),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(
-                                1.dp,
-                                OscuroDetalle
-                            )
+                            border = BorderStroke(1.dp, OscuroDetalle)
                         ) {
                             Text(
                                 text = "Editar sala",
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextoDetalle
-                            )
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                navegar(Rutas.reservar(sala.codigo))
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AmarilloDetalle,
-                                contentColor = TextoDetalle
-                            )
-                        ) {
-                            Text(
-                                text = "Reservar",
-                                fontSize = 19.sp,
-                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
