@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import cl.duoc.reservasalas.app.ReservaSalasApp
+import cl.duoc.reservasalas.app.data.falso.Reloj
 import cl.duoc.reservasalas.app.data.modelo.HorarioGeneral
 import cl.duoc.reservasalas.app.data.modelo.Reserva
 import cl.duoc.reservasalas.app.data.modelo.Sala
@@ -18,10 +19,12 @@ import kotlinx.coroutines.flow.StateFlow
 class DetalleSalaViewModel(
     private val repositorioSalas: RepositorioSalas,
     private val repositorioReservas: RepositorioReservas,
-    private val repositorioHorario: RepositorioHorario
+    private val repositorioHorario: RepositorioHorario,
+    val reloj: Reloj
 ) : ViewModel() {
 
-    val salas: StateFlow<List<Sala>> = repositorioSalas.salas
+    val salas: StateFlow<List<Sala>> =
+        repositorioSalas.salas
 
     val reservas: StateFlow<List<Reserva>> =
         repositorioReservas.reservas
@@ -30,7 +33,9 @@ class DetalleSalaViewModel(
         repositorioHorario.horario
 
     fun buscarSala(codigo: String): Sala? {
-        return salas.value.find { it.codigo == codigo }
+        return salas.value.find {
+            it.codigo == codigo
+        }
     }
 
     companion object {
@@ -42,7 +47,8 @@ class DetalleSalaViewModel(
                 DetalleSalaViewModel(
                     repositorioSalas = contenedor.repositorioSalas,
                     repositorioReservas = contenedor.repositorioReservas,
-                    repositorioHorario = contenedor.repositorioHorario
+                    repositorioHorario = contenedor.repositorioHorario,
+                    reloj = contenedor.reloj
                 )
             }
         }

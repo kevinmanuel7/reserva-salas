@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +21,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.reservasalas.app.data.modelo.Bloque
-import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
+import cl.duoc.reservasalas.app.data.modelo.EstadoBloque
+import cl.duoc.reservasalas.app.data.modelo.estadoBloque
 import cl.duoc.reservasalas.app.data.repository.ResultadoReserva
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
 import java.time.format.DateTimeFormatter
@@ -35,6 +35,8 @@ private val TextoReserva = Color(0xFF302D2B)
 private val SecundarioReserva = Color(0xFF605D5A)
 private val BordeReserva = Color(0xFFDADADA)
 private val GrisReserva = Color(0xFFE0E0E0)
+private val GrisPasadoReserva = Color(0xFFBDBDBD)
+private val BordePasadoReserva = Color(0xFFE5E5E5)
 
 @Composable
 fun ReservarPantalla(
@@ -52,7 +54,8 @@ fun ReservarPantalla(
     val reservas = viewModel.reservas.collectAsState().value
     val sala = salas.find { it.codigo == codigo }
 
-    val hoy = remember { viewModel.reloj.hoy() }
+    val hoy = viewModel.reloj.hoy()
+    val ahora = viewModel.reloj.ahora()
 
     var fechaSeleccionada by remember {
         mutableStateOf(hoy)
@@ -102,27 +105,22 @@ fun ReservarPantalla(
         emptyList()
     }
 
-    val reservasDelDia = reservas.filter { reserva ->
-        reserva.codigoSala == codigo &&
-                reserva.fecha == fechaSeleccionada &&
-                reserva.estado != EstadoReserva.CANCELADA
-    }
-
     fun bloqueDisponible(bloque: Bloque): Boolean {
-        val ocupado = reservasDelDia.any { reserva ->
-            reserva.ocupa(bloque)
-        }
-
-        val pasado = fechaSeleccionada == hoy &&
-                !bloque.inicio.isAfter(
-                    viewModel.reloj.ahora().toLocalTime()
-                )
-
-        return !ocupado && !pasado
+        return estadoBloque(
+            bloque = bloque,
+            codigoSala = codigo,
+            fecha = fechaSeleccionada,
+            reservas = reservas,
+            ahora = ahora
+        ) == EstadoBloque.LIBRE
     }
 
     fun seleccionarBloque(bloque: Bloque) {
         mensajeError = null
+
+        if (!bloqueDisponible(bloque)) {
+            return
+        }
 
         if (bloque in bloquesSeleccionados) {
             bloquesSeleccionados =
@@ -369,16 +367,43 @@ fun ReservarPantalla(
                                     Arrangement.spacedBy(8.dp)
                             ) {
                                 fila.forEach { bloque ->
+                                    val estado = estadoBloque(
+                                        bloque = bloque,
+                                        codigoSala = codigo,
+                                        fecha = fechaSeleccionada,
+                                        reservas = reservas,
+                                        ahora = ahora
+                                    )
+
                                     val disponible =
-                                        bloqueDisponible(bloque)
+                                        estado == EstadoBloque.LIBRE
 
                                     val seleccionado =
                                         bloque in bloquesSeleccionados
 
                                     val fondo = when {
                                         seleccionado -> AmarilloReserva
-                                        !disponible -> GrisReserva
+                                        estado == EstadoBloque.OCUPADO ->
+                                            GrisReserva
+                                        estado == EstadoBloque.PASADO ->
+                                            Color.Transparent
                                         else -> Color.White
+                                    }
+
+                                    val colorTexto = when {
+                                        seleccionado -> TextoReserva
+                                        estado == EstadoBloque.OCUPADO ->
+                                            Color.Gray
+                                        estado == EstadoBloque.PASADO ->
+                                            GrisPasadoReserva
+                                        else -> TextoReserva
+                                    }
+
+                                    val colorBorde = when {
+                                        seleccionado -> OscuroReserva
+                                        estado == EstadoBloque.PASADO ->
+                                            BordePasadoReserva
+                                        else -> BordeReserva
                                     }
 
                                     Surface(
@@ -399,11 +424,7 @@ fun ReservarPantalla(
                                             } else {
                                                 1.dp
                                             },
-                                            if (seleccionado) {
-                                                OscuroReserva
-                                            } else {
-                                                BordeReserva
-                                            }
+                                            colorBorde
                                         )
                                     ) {
                                         Box(
@@ -413,11 +434,7 @@ fun ReservarPantalla(
                                             Text(
                                                 text = bloque.inicio
                                                     .format(formatoHora),
-                                                color = if (disponible) {
-                                                    TextoReserva
-                                                } else {
-                                                    SecundarioReserva
-                                                },
+                                                color = colorTexto,
                                                 fontSize = 16.sp,
                                                 fontWeight =
                                                     if (seleccionado) {
@@ -426,7 +443,10 @@ fun ReservarPantalla(
                                                         FontWeight.Normal
                                                     },
                                                 textDecoration =
-                                                    if (!disponible) {
+                                                    if (
+                                                        estado ==
+                                                        EstadoBloque.OCUPADO
+                                                    ) {
                                                         TextDecoration.LineThrough
                                                     } else {
                                                         TextDecoration.None
@@ -450,7 +470,7 @@ fun ReservarPantalla(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement =
-                        Arrangement.spacedBy(16.dp),
+                        Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     LeyendaReserva(
@@ -461,6 +481,12 @@ fun ReservarPantalla(
                     LeyendaReserva(
                         color = GrisReserva,
                         texto = "Ocupado"
+                    )
+
+                    LeyendaReserva(
+                        color = FondoReserva,
+                        texto = "Pasado",
+                        borde = BordePasadoReserva
                     )
 
                     LeyendaReserva(
@@ -565,6 +591,7 @@ fun ReservarPantalla(
                         },
                         enabled = bloquesSeleccionados.isNotEmpty() &&
                                 !guardando &&
+                                fechaSeleccionada.dayOfWeek in horarioGeneral.dias &&
                                 bloquesSeleccionados.all {
                                     bloqueDisponible(it)
                                 },
@@ -604,7 +631,8 @@ fun ReservarPantalla(
 @Composable
 private fun LeyendaReserva(
     color: Color,
-    texto: String
+    texto: String,
+    borde: Color = BordeReserva
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -614,7 +642,7 @@ private fun LeyendaReserva(
             modifier = Modifier.size(15.dp),
             color = color,
             shape = RoundedCornerShape(4.dp),
-            border = BorderStroke(1.dp, BordeReserva)
+            border = BorderStroke(1.dp, borde)
         ) {}
 
         Text(

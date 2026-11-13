@@ -17,16 +17,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.reservasalas.app.ReservaSalasApp
+import cl.duoc.reservasalas.app.data.modelo.EstadoBloque
 import cl.duoc.reservasalas.app.data.modelo.EstadoEquipo
-import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
 import cl.duoc.reservasalas.app.data.modelo.bloques
+import cl.duoc.reservasalas.app.data.modelo.estadoBloque
 import cl.duoc.reservasalas.app.model.Rol
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val FondoDetalle = Color(0xFFF2F3F5)
@@ -38,6 +39,8 @@ private val BordeDetalle = Color(0xFFDADADA)
 private val RojoDetalle = Color(0xFFD32F2F)
 private val VerdeDetalle = Color(0xFF388E3C)
 private val GrisOcupado = Color(0xFFE0E0E0)
+private val GrisPasado = Color(0xFFBDBDBD)
+private val BordePasado = Color(0xFFE5E5E5)
 
 @Composable
 fun DetalleSalaPantalla(
@@ -62,16 +65,11 @@ fun DetalleSalaPantalla(
     val horarioGeneral = viewModel.horario.collectAsState().value
 
     val sala = salas.find { it.codigo == codigo }
-    val hoy = LocalDate.now()
+    val hoy = viewModel.reloj.hoy()
+    val ahora = viewModel.reloj.ahora()
     val formatoHora = DateTimeFormatter.ofPattern("HH:mm")
 
     val bloquesHoy = sala?.bloques(horarioGeneral).orEmpty()
-
-    val reservasSalaHoy = reservas.filter { reserva ->
-        reserva.codigoSala == codigo &&
-                reserva.fecha == hoy &&
-                reserva.estado != EstadoReserva.CANCELADA
-    }
 
     Column(
         modifier = modifier
@@ -265,22 +263,34 @@ fun DetalleSalaPantalla(
                     }
                 }
 
+                Text(
+                    text = "Disponibilidad de hoy",
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextoDetalle
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Disponibilidad de hoy",
-                        fontSize = 21.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoDetalle
+                    LeyendaDetalle(
+                        texto = "Libre",
+                        color = Color.White,
+                        borde = BordeDetalle
                     )
 
-                    Text(
-                        text = "Gris = ocupado",
-                        fontSize = 12.sp,
-                        color = SecundarioDetalle
+                    LeyendaDetalle(
+                        texto = "Ocupado",
+                        color = GrisOcupado,
+                        borde = BordeDetalle
+                    )
+
+                    LeyendaDetalle(
+                        texto = "Pasado",
+                        color = FondoDetalle,
+                        borde = BordePasado
                     )
                 }
 
@@ -293,24 +303,43 @@ fun DetalleSalaPantalla(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             fila.forEach { bloque ->
-                                val ocupado = reservasSalaHoy.any { reserva ->
-                                    bloque.inicio >= reserva.horaInicio &&
-                                            bloque.inicio < reserva.horaFin
+                                val estado = estadoBloque(
+                                    bloque = bloque,
+                                    codigoSala = codigo,
+                                    fecha = hoy,
+                                    reservas = reservas,
+                                    ahora = ahora
+                                )
+
+                                val colorFondo = when (estado) {
+                                    EstadoBloque.LIBRE -> Color.White
+                                    EstadoBloque.OCUPADO -> GrisOcupado
+                                    EstadoBloque.PASADO -> Color.Transparent
+                                }
+
+                                val colorTexto = when (estado) {
+                                    EstadoBloque.LIBRE -> TextoDetalle
+                                    EstadoBloque.OCUPADO -> Color.Gray
+                                    EstadoBloque.PASADO -> GrisPasado
+                                }
+
+                                val colorBorde = if (
+                                    estado == EstadoBloque.PASADO
+                                ) {
+                                    BordePasado
+                                } else {
+                                    BordeDetalle
                                 }
 
                                 Surface(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(45.dp),
-                                    color = if (ocupado) {
-                                        GrisOcupado
-                                    } else {
-                                        Color.White
-                                    },
+                                    color = colorFondo,
                                     shape = RoundedCornerShape(8.dp),
                                     border = BorderStroke(
                                         1.dp,
-                                        BordeDetalle
+                                        colorBorde
                                     )
                                 ) {
                                     Box(
@@ -318,13 +347,16 @@ fun DetalleSalaPantalla(
                                     ) {
                                         Text(
                                             text = bloque.inicio.format(formatoHora),
-                                            color = if (ocupado) {
-                                                Color.Gray
-                                            } else {
-                                                TextoDetalle
-                                            },
+                                            color = colorTexto,
                                             fontSize = 12.sp,
-                                            textAlign = TextAlign.Center
+                                            textAlign = TextAlign.Center,
+                                            textDecoration = if (
+                                                estado == EstadoBloque.OCUPADO
+                                            ) {
+                                                TextDecoration.LineThrough
+                                            } else {
+                                                TextDecoration.None
+                                            }
                                         )
                                     }
                                 }
@@ -379,7 +411,10 @@ fun DetalleSalaPantalla(
                                 .fillMaxWidth()
                                 .height(54.dp),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, OscuroDetalle)
+                            border = BorderStroke(
+                                1.dp,
+                                OscuroDetalle
+                            )
                         ) {
                             Text(
                                 text = "Editar sala",
@@ -392,5 +427,30 @@ fun DetalleSalaPantalla(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LeyendaDetalle(
+    texto: String,
+    color: Color,
+    borde: Color
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Surface(
+            modifier = Modifier.size(13.dp),
+            color = color,
+            shape = RoundedCornerShape(3.dp),
+            border = BorderStroke(1.dp, borde)
+        ) {}
+
+        Text(
+            text = texto,
+            fontSize = 12.sp,
+            color = SecundarioDetalle
+        )
     }
 }
