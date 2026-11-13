@@ -77,7 +77,9 @@ Dentro del paquete base, separar por capas:
   el método del servicio lleva `@Transactional` y valida todo antes de guardar
   (orden de validaciones en la sección 5 del plan).
 - Responder con el código HTTP que indica el contrato (200, 201, 400, 401, 403,
-  404, 409). Un cruce de horario responde `409`.
+  404, 409). Un cruce de horario responde `409` con `CRUCE_HORARIO`, y una reserva
+  que se cruza con otra del mismo usuario (en cualquier sala) responde `409` con
+  `USUARIO_OCUPADO` (regla de cruce del usuario, sección 4 del plan).
 - Cada microservicio tiene un manejador global de errores que responde siempre con
   el formato de error del contrato.
 - Validar los datos de entrada en los DTO (Bean Validation) antes de llegar al servicio.

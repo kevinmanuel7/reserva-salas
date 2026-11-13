@@ -398,7 +398,28 @@ Dos reservas se cruzan cuando se cumplen **las cuatro** condiciones:
 | Bloques 2 a 4            | Bloques 5 a 6 | No      | La existente termina a las 12:00 y la nueva empieza a las 12:05 |
 | Bloques 2 a 4, cancelada | Bloques 2 a 4 | No      | Las canceladas no cuentan                                       |
 
-El backend es quien decide si hay cruce, porque es el único que ve las reservas de todos. La app también revisa antes de enviar, solo para avisar rápido al usuario.
+### Regla de cruce del usuario
+
+Un mismo usuario no puede tener dos reservas a la misma hora, aunque sean en salas distintas. Una reserva nueva se cruza con otra del mismo usuario cuando se cumplen **las cuatro** condiciones:
+
+1.  Son del mismo usuario (usuarioId igual). El usuario es el del token, sea relator o coordinador.
+
+2.  Son de la misma fecha (fecha igual).
+
+3.  Ambas están en estado ACTIVA.
+
+4.  Sus bloques se superponen, con la misma fórmula de la regla anterior.
+
+La sala **no importa**: esta regla se revisa en cualquier sala.
+
+| Reserva existente del usuario | Reserva nueva del mismo usuario | ¿Cruce? | Por qué                                         |
+|-------------------------------|---------------------------------|---------|-------------------------------------------------|
+| Sala 1, bloques 2 a 4         | Sala 5, bloques 3 a 3           | Sí      | No puede estar en dos salas a la vez            |
+| Sala 1, bloques 2 a 4         | Sala 5, bloques 5 a 6           | No      | La nueva empieza cuando la existente ya terminó |
+| Sala 1, bloques 2 a 4, cancelada | Sala 5, bloques 2 a 4        | No      | Las canceladas no cuentan                       |
+| Sala 1, bloques 2 a 4         | Sala 1, bloques 2 a 4, otro usuario | —   | No aplica esta regla: es un cruce de sala (regla anterior) |
+
+El backend es quien decide si hay cruce (de sala o del usuario), porque es el único que ve las reservas de todos. La app también revisa antes de enviar, solo para avisar rápido al usuario.
 
 ## 5. Contrato 1: API REST (Backend ↔ Datos de la app)
 
@@ -408,6 +429,8 @@ La API tiene 15 endpoints repartidos en 3 microservicios. Todos responden JSON y
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
+| 4 | 2026-11-13 | Nueva regla de cruce del usuario (sección 4) y nuevo error `409 USUARIO_OCUPADO` en `POST /reservas` y `POST /reservas/lote` | Una persona no puede estar en dos salas a la vez. Sin esta regla, una sala queda bloqueada sin uso y otro relator no la puede pedir (detectado al revisar la maqueta) |
+| 4 | 2026-11-13 | Casos de prueba 21 a 23 pasan del Relator 2 al Relator 1; los casos de `DELETE /salas/6`, que repetían los números 24 y 25, pasan a 26 y 27; nuevos casos 28 a 31 | Con la regla nueva, el Relator 2 ya tiene la reserva 7 en esos bloques y los casos 21 a 23 darían otro resultado |
 | 3 | 2026-11-12 | Nuevo `GET /reservas/disponibilidad`, público | La web se puede recorrer sin iniciar sesión: muestra qué bloques están ocupados, sin revelar quién reservó ni para qué |
 | 3 | 2026-11-12 | Bloques con 5 minutos de pausa: 08:00–09:00, 09:05–10:00 … 20:05–21:00 | Alinear el contrato con el diseño del cliente (docs/maqueta/especificacion.md), que ya usan la app y la web |
 | 2 | 2026-11-04 | Todas las rutas llevan el prefijo `/api/v1` | Versionado de la API, exigido en DSY1104 |
@@ -524,17 +547,19 @@ POST /reservas y POST /reservas/lote **no reciben usuarioId**: el servidor lo ob
 
 5.  La sala está activa. Si no → 400 SALA_INACTIVA.
 
-6.  No hay cruce según la regla de la sección 4. Si hay → 409 CRUCE_HORARIO.
+6.  No hay cruce según la regla de cruce de horario (sección 4). Si hay → 409 CRUCE_HORARIO.
 
-7.  Todo bien → se guarda con estado: "ACTIVA" y responde 201.
+7.  El usuario no tiene otra reserva que se cruce según la regla de cruce del usuario (sección 4). Si tiene → 409 USUARIO_OCUPADO.
+
+8.  Todo bien → se guarda con estado: "ACTIVA" y responde 201.
 
 ### Validaciones de POST /reservas/lote (todo o nada)
 
 1.  La lista viene y tiene al menos una reserva. Si no → 400 DATOS_INVALIDOS.
 
-2.  Cada reserva de la lista pasa las validaciones 1 a 6 de POST /reservas, en ese orden. La primera que falla detiene todo y se responde con su error. El `mensaje` indica cuál reserva de la lista falló.
+2.  Cada reserva de la lista pasa las validaciones 1 a 7 de POST /reservas, en ese orden. La primera que falla detiene todo y se responde con su error. El `mensaje` indica cuál reserva de la lista falló.
 
-3.  Las reservas de la lista no se cruzan entre sí (misma sala, misma fecha y bloques superpuestos). Si se cruzan → 409 CRUCE_HORARIO.
+3.  Las reservas de la lista no se cruzan entre sí. Si dos son de la misma sala, misma fecha y con bloques superpuestos → 409 CRUCE_HORARIO. Si son de salas distintas, misma fecha y con bloques superpuestos → 409 USUARIO_OCUPADO, porque todas las reservas del lote son del mismo usuario.
 
 4.  Todo bien → se guardan **todas** en una sola transacción y responde 201 con la lista. Si cualquier paso falla, **no se guarda ninguna**.
 
@@ -565,6 +590,7 @@ Toda respuesta de error (400, 401, 403, 404, 409 y 500) tiene esta misma forma:
 | SALA_NO_ENCONTRADA     | 404  | No existe la sala pedida                          |
 | RESERVA_NO_ENCONTRADA  | 404  | No existe la reserva pedida                       |
 | CRUCE_HORARIO          | 409  | La sala ya está ocupada en alguno de esos bloques |
+| USUARIO_OCUPADO        | 409  | El usuario ya tiene otra reserva en alguno de esos bloques, en cualquier sala |
 | ERROR_INTERNO          | 500  | Error inesperado del servidor                     |
 
 Las rutas que no existen (404), los métodos no permitidos (405) y los formatos que no son JSON (415) conservan su código HTTP y responden con codigo: "DATOS_INVALIDOS".
@@ -724,7 +750,7 @@ Interfaz debe diseñar cómo se ve cada estado que aparece en la pantalla:
 
 - **Acciones:** confirmar, volver.
 
-- **Estados:** inicial, guardando, éxito (vuelve a Mi agenda con el mensaje «Reserva creada»), error. Caso especial: **cruce** (409), cuando otra persona reservó esos bloques mientras este usuario llenaba el formulario. Se muestra el mensaje del error y un botón para volver al Detalle de sala, que se recarga.
+- **Estados:** inicial, guardando, éxito (vuelve a Mi agenda con el mensaje «Reserva creada»), error. Caso especial: **cruce** (409), cuando otra persona reservó esos bloques mientras este usuario llenaba el formulario. Se muestra el mensaje del error y un botón para volver al Detalle de sala, que se recarga. Caso especial: **usuario ocupado** (409 USUARIO_OCUPADO), cuando el usuario ya tiene otra reserva a esa hora. Se muestra el mensaje «Ya tienes una reserva en ese horario» y el usuario puede elegir otros bloques.
 
 - **Datos desde:** POST /reservas. Si es exitoso, Datos programa el recordatorio local 15 minutos antes del inicio.
 
@@ -861,15 +887,19 @@ Backend los guarda en la colección de Postman (docs/postman/). Todos usan el da
 | 18  | Nadie         | GET /salas?incluirInactivas=true sin token               | 401 TOKEN_INVALIDO                                                 |
 | 19  | Nadie         | GET /reservas?fecha=2026-11-02 sin token                 | 401 TOKEN_INVALIDO                                                 |
 | 20  | Relator 1     | POST /auth/refresh con su token vigente                  | 200 con un token nuevo y el usuario                                |
-| 21  | Relator 2     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 1, 2026-11-03, bloque 12 a 12 | 409 CRUCE_HORARIO (choca con la reserva 6) y no se guarda ninguna  |
-| 22  | Relator 2     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 2 a 3 | 409 CRUCE_HORARIO: las dos del lote se cruzan entre sí             |
-| 23  | Relator 2     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 3 a 4 | 201 con las 2 reservas creadas                                     |
+| 21  | Relator 1     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 1, 2026-11-03, bloque 12 a 12 | 409 CRUCE_HORARIO (choca con la reserva 6) y no se guarda ninguna  |
+| 22  | Relator 1     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 2 a 3 | 409 CRUCE_HORARIO: las dos del lote se cruzan entre sí             |
+| 23  | Relator 1     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 3 a 4 | 201 con las 2 reservas creadas                                     |
 | 24  | Nadie         | GET /reservas/disponibilidad?fecha=2026-11-02 sin token  | 200 con salaId, fecha y bloques de las reservas 1 a 4, sin nombre ni actividad |
 | 25  | Nadie         | GET /reservas/disponibilidad sin fecha                   | 400 DATOS_INVALIDOS                                                |
-| 24  | Relator 1     | DELETE /salas/6                                          | 403 SIN_PERMISO                                                    |
-| 25  | Coordinador 1 | DELETE /salas/6                                          | 200 con activa: false; después GET /salas devuelve 7 salas         |
+| 26  | Relator 1     | DELETE /salas/6                                          | 403 SIN_PERMISO                                                    |
+| 27  | Coordinador 1 | DELETE /salas/6                                          | 200 con activa: false; después GET /salas devuelve 7 salas         |
+| 28  | Relator 2     | Reservar sala 5, 2026-11-02, bloques 5 a 6               | 409 USUARIO_OCUPADO (el Relator 2 ya tiene la reserva 2 en la sala 1, bloques 4 a 5) |
+| 29  | Relator 2     | Reservar sala 5, 2026-11-02, bloques 6 a 7               | 201: empieza justo cuando termina su reserva 2                     |
+| 30  | Relator 2     | Lote: sala 4, 2026-11-04, bloques 1 a 2 + sala 6, 2026-11-04, bloques 2 a 3 | 409 USUARIO_OCUPADO: las dos del lote comparten el bloque 2 en salas distintas, y no se guarda ninguna |
+| 31  | Relator 1     | Reservar sala 1, 2026-11-10, bloques 8 a 9               | 201: su reserva 24 en esos bloques está cancelada y no cuenta      |
 
-Los casos 7 a 11, 16 a 17, 23 y 25 modifican datos: después de correrlos, se recarga el dataset original.
+Los casos 7 a 11, 16 a 17, 23, 27, 29 y 31 modifican datos: después de correrlos, se recarga el dataset original.
 
 ## 8. Fases del proyecto, paso a paso
 
