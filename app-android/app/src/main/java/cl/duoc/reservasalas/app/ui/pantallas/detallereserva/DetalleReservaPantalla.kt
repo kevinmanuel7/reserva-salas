@@ -45,6 +45,8 @@ fun DetalleReservaPantalla(
 
     val reservas = viewModel.reservas.collectAsState().value
     val salas = viewModel.salas.collectAsState().value
+    val cancelando by viewModel.cancelando.collectAsState()
+    val errorCancelacion by viewModel.errorCancelacion.collectAsState()
 
     val reserva = reservas.find { it.id == idReserva }
     val sala = salas.find { it.codigo == reserva?.codigoSala }
@@ -378,6 +380,7 @@ fun DetalleReservaPantalla(
                                         Rutas.checkin(reserva.id)
                                     )
                                 },
+                                enabled = !cancelando,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp),
@@ -398,8 +401,10 @@ fun DetalleReservaPantalla(
                         if (viewModel.sePuedeCancelar(reserva)) {
                             OutlinedButton(
                                 onClick = {
+                                    viewModel.limpiarErrorCancelacion()
                                     mostrarDialogoCancelar = true
                                 },
+                                enabled = !cancelando,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(56.dp),
@@ -410,7 +415,11 @@ fun DetalleReservaPantalla(
                                 )
                             ) {
                                 Text(
-                                    text = "Cancelar reserva",
+                                    text = if (cancelando) {
+                                        "Cancelando..."
+                                    } else {
+                                        "Cancelar reserva"
+                                    },
                                     color = RojoDetalleReserva,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold
@@ -424,25 +433,56 @@ fun DetalleReservaPantalla(
             if (mostrarDialogoCancelar) {
                 AlertDialog(
                     onDismissRequest = {
-                        mostrarDialogoCancelar = false
+                        if (!cancelando) {
+                            mostrarDialogoCancelar = false
+                        }
                     },
                     title = {
                         Text("¿Cancelar reserva?")
                     },
                     text = {
-                        Text(
-                            "La sala ${reserva.codigoSala} quedará libre de ${reserva.horario}. Esta acción no se puede deshacer."
-                        )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                "La sala ${reserva.codigoSala} quedará libre de ${reserva.horario}. Esta acción no se puede deshacer."
+                            )
+
+                            if (cancelando) {
+                                LinearProgressIndicator(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = AmarilloDetalleReserva
+                                )
+                            }
+
+                            if (errorCancelacion != null) {
+                                Text(
+                                    text = errorCancelacion
+                                        ?: "No se pudo cancelar la reserva",
+                                    color = RojoDetalleReserva,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
                     },
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                viewModel.cancelar(reserva.id)
-                                mostrarDialogoCancelar = false
-                            }
+                                viewModel.cancelar(reserva.id) {
+                                    mostrarDialogoCancelar = false
+                                    navegar(
+                                        Rutas.reservaCancelada(reserva.id)
+                                    )
+                                }
+                            },
+                            enabled = !cancelando
                         ) {
                             Text(
-                                text = "Sí, cancelar",
+                                text = if (cancelando) {
+                                    "Cancelando..."
+                                } else {
+                                    "Sí, cancelar"
+                                },
                                 color = RojoDetalleReserva
                             )
                         }
@@ -451,7 +491,9 @@ fun DetalleReservaPantalla(
                         TextButton(
                             onClick = {
                                 mostrarDialogoCancelar = false
-                            }
+                                viewModel.limpiarErrorCancelacion()
+                            },
+                            enabled = !cancelando
                         ) {
                             Text("No")
                         }

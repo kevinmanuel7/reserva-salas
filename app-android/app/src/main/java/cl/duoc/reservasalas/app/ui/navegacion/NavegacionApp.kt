@@ -1,3 +1,4 @@
+
 package cl.duoc.reservasalas.app.ui.navegacion
 
 import androidx.compose.foundation.background
@@ -6,6 +7,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +36,7 @@ import cl.duoc.reservasalas.app.ui.pantallas.horariogeneral.HorarioGeneralPantal
 import cl.duoc.reservasalas.app.ui.pantallas.iniciocoordinador.InicioCoordinadorPantalla
 import cl.duoc.reservasalas.app.ui.pantallas.iniciorelator.InicioRelatorPantalla
 import cl.duoc.reservasalas.app.ui.pantallas.perfil.PerfilPantalla
+import cl.duoc.reservasalas.app.ui.pantallas.reservacancelada.ReservaCanceladaPantalla
 import cl.duoc.reservasalas.app.ui.pantallas.reservaconfirmada.ReservaConfirmadaPantalla
 import cl.duoc.reservasalas.app.ui.pantallas.reservar.ReservarPantalla
 import cl.duoc.reservasalas.app.ui.pantallas.reservasdia.ReservasDiaPantalla
@@ -43,7 +46,6 @@ import cl.duoc.reservasalas.app.ui.screens.LoginScreen
 import cl.duoc.reservasalas.app.ui.theme.Fondo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import androidx.compose.foundation.layout.imePadding
 
 /** Mientras se lee DataStore no se sabe si hay sesión: se distingue "leyendo" de "no hay sesión". */
 private sealed interface EstadoSesion {
@@ -131,9 +133,11 @@ fun NavegacionApp(sesion: Flow<Sesion?>) {
                     }
                 )
             }
+
             composable(Rutas.PERFIL) {
                 PerfilPantalla(navegar = navegar)
             }
+
             composable(Rutas.CHECKIN, arguments = listOf(argumentoIdReserva())) { entrada ->
                 CheckInPantalla(idReserva = entrada.idReserva(), volver = volver)
             }
@@ -141,37 +145,87 @@ fun NavegacionApp(sesion: Flow<Sesion?>) {
             composable(Rutas.INICIO_RELATOR) {
                 InicioRelatorPantalla(navegar = navegar)
             }
+
             composable(Rutas.SALAS) {
                 SalasPantalla(navegar = navegar)
             }
+
             composable(Rutas.SALA, arguments = listOf(argumentoCodigo())) { entrada ->
-                DetalleSalaPantalla(codigo = entrada.codigo(), navegar = navegar, volver = volver)
+                DetalleSalaPantalla(
+                    codigo = entrada.codigo(),
+                    navegar = navegar,
+                    volver = volver
+                )
             }
+
             composable(Rutas.RESERVAR, arguments = listOf(argumentoCodigo())) { entrada ->
-                ReservarPantalla(codigo = entrada.codigo(), navegar = navegar, volver = volver)
+                ReservarPantalla(
+                    codigo = entrada.codigo(),
+                    navegar = navegar,
+                    volver = volver
+                )
             }
-            composable(Rutas.RESERVA_CONFIRMADA, arguments = listOf(argumentoIdReserva())) { entrada ->
-                ReservaConfirmadaPantalla(idReserva = entrada.idReserva(), navegar = navegar)
+
+            composable(
+                Rutas.RESERVA_CONFIRMADA,
+                arguments = listOf(argumentoIdReserva())
+            ) { entrada ->
+                ReservaConfirmadaPantalla(
+                    idReserva = entrada.idReserva(),
+                    navegar = navegar
+                )
             }
+
+            composable(
+                Rutas.RESERVA_CANCELADA,
+                arguments = listOf(argumentoIdReserva())
+            ) { entrada ->
+                ReservaCanceladaPantalla(
+                    idReserva = entrada.idReserva(),
+                    navegar = navegar
+                )
+            }
+
             composable(Rutas.AGENDA) {
                 AgendaPantalla(navegar = navegar)
             }
+
             composable(Rutas.RESERVA, arguments = listOf(argumentoIdReserva())) { entrada ->
-                DetalleReservaPantalla(idReserva = entrada.idReserva(), navegar = navegar, volver = volver)
+                DetalleReservaPantalla(
+                    idReserva = entrada.idReserva(),
+                    navegar = navegar,
+                    volver = volver
+                )
             }
 
             composable(Rutas.INICIO_COORDINADOR) {
                 InicioCoordinadorPantalla(navegar = navegar)
             }
+
             composable(Rutas.RESERVAS_DIA) {
                 ReservasDiaPantalla(navegar = navegar)
             }
-            composable(Rutas.SUPERVISAR, arguments = listOf(argumentoIdReserva())) { entrada ->
-                SupervisarPantalla(idReserva = entrada.idReserva(), volver = volver)
+
+            composable(
+                Rutas.SUPERVISAR,
+                arguments = listOf(argumentoIdReserva())
+            ) { entrada ->
+                SupervisarPantalla(
+                    idReserva = entrada.idReserva(),
+                    volver = volver
+                )
             }
-            composable(Rutas.EDITAR_SALA, arguments = listOf(argumentoCodigo())) { entrada ->
-                EditarSalaPantalla(codigo = entrada.codigo(), volver = volver)
+
+            composable(
+                Rutas.EDITAR_SALA,
+                arguments = listOf(argumentoCodigo())
+            ) { entrada ->
+                EditarSalaPantalla(
+                    codigo = entrada.codigo(),
+                    volver = volver
+                )
             }
+
             composable(Rutas.HORARIO_GENERAL) {
                 HorarioGeneralPantalla(volver = volver)
             }
@@ -179,9 +233,13 @@ fun NavegacionApp(sesion: Flow<Sesion?>) {
     }
 }
 
-private fun argumentoCodigo() = navArgument(Rutas.ARG_CODIGO) { type = NavType.StringType }
+private fun argumentoCodigo() = navArgument(Rutas.ARG_CODIGO) {
+    type = NavType.StringType
+}
 
-private fun argumentoIdReserva() = navArgument(Rutas.ARG_ID_RESERVA) { type = NavType.IntType }
+private fun argumentoIdReserva() = navArgument(Rutas.ARG_ID_RESERVA) {
+    type = NavType.IntType
+}
 
 private fun NavBackStackEntry.codigo(): String =
     arguments?.getString(Rutas.ARG_CODIGO).orEmpty()
@@ -198,17 +256,26 @@ private fun NavBackStackEntry.idReserva(): Int =
  */
 private fun NavHostController.navegarA(ruta: String, rol: Rol?) {
     val rutasBarra = itemsBarraInferior(rol).map { it.ruta }
+
     when {
         ruta == Rutas.LOGIN -> navigate(Rutas.LOGIN) {
             popUpTo(graph.id) { inclusive = true }
         }
+
         rol != null && ruta in rutasBarra -> navigate(ruta) {
             popUpTo(Rutas.inicioSegunRol(rol))
             launchSingleTop = true
         }
+
         ruta.startsWith("reservaConfirmada/") -> navigate(ruta) {
             popUpTo(Rutas.RESERVAR) { inclusive = true }
         }
+
+        ruta.startsWith("reservaCancelada/") -> navigate(ruta) {
+            popUpTo(Rutas.RESERVA) { inclusive = true }
+            launchSingleTop = true
+        }
+
         else -> navigate(ruta)
     }
 }

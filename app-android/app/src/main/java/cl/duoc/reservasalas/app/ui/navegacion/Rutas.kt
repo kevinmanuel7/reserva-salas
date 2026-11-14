@@ -1,3 +1,4 @@
+
 package cl.duoc.reservasalas.app.ui.navegacion
 
 import cl.duoc.reservasalas.app.model.Rol
@@ -19,6 +20,7 @@ object Rutas {
     const val SALA = "sala/{codigo}"
     const val RESERVAR = "reservar/{codigo}"
     const val RESERVA_CONFIRMADA = "reservaConfirmada/{idReserva}"
+    const val RESERVA_CANCELADA = "reservaCancelada/{idReserva}"
     const val AGENDA = "agenda"
     const val RESERVA = "reserva/{idReserva}"
 
@@ -38,6 +40,7 @@ object Rutas {
     fun sala(codigo: String) = "sala/$codigo"
     fun reservar(codigo: String) = "reservar/$codigo"
     fun reservaConfirmada(idReserva: Int) = "reservaConfirmada/$idReserva"
+    fun reservaCancelada(idReserva: Int) = "reservaCancelada/$idReserva"
     fun reserva(idReserva: Int) = "reserva/$idReserva"
     fun supervisar(idReserva: Int) = "supervisar/$idReserva"
     fun editarSala(codigo: String) = "editarSala/$codigo"
