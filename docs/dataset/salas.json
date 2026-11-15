@@ -1,0 +1,101 @@
+[
+  {
+    "id": 1,
+    "codigo": "LAB-01",
+    "nombre": "Laboratorio Computación 1",
+    "tipo": "LABORATORIO",
+    "capacidad": 24,
+    "tieneProyector": true,
+    "tieneComputadores": true,
+    "tieneClimatizacion": true,
+    "activa": true
+  },
+  {
+    "id": 2,
+    "codigo": "LAB-02",
+    "nombre": "Laboratorio Electrónica",
+    "tipo": "LABORATORIO",
+    "capacidad": 16,
+    "tieneProyector": true,
+    "tieneComputadores": true,
+    "tieneClimatizacion": false,
+    "activa": true
+  },
+  {
+    "id": 3,
+    "codigo": "SC-101",
+    "nombre": "Sala 101",
+    "tipo": "SALA_CLASES",
+    "capacidad": 30,
+    "tieneProyector": true,
+    "tieneComputadores": false,
+    "tieneClimatizacion": true,
+    "activa": true
+  },
+  {
+    "id": 4,
+    "codigo": "SC-102",
+    "nombre": "Sala 102",
+    "tipo": "SALA_CLASES",
+    "capacidad": 25,
+    "tieneProyector": true,
+    "tieneComputadores": false,
+    "tieneClimatizacion": false,
+    "activa": true
+  },
+  {
+    "id": 5,
+    "codigo": "SC-201",
+    "nombre": "Sala 201",
+    "tipo": "SALA_CLASES",
+    "capacidad": 40,
+    "tieneProyector": true,
+    "tieneComputadores": false,
+    "tieneClimatizacion": true,
+    "activa": true
+  },
+  {
+    "id": 6,
+    "codigo": "SC-202",
+    "nombre": "Sala 202",
+    "tipo": "SALA_CLASES",
+    "capacidad": 20,
+    "tieneProyector": false,
+    "tieneComputadores": false,
+    "tieneClimatizacion": false,
+    "activa": true
+  },
+  {
+    "id": 7,
+    "codigo": "MP-01",
+    "nombre": "Auditorio",
+    "tipo": "MULTIPROPOSITO",
+    "capacidad": 80,
+    "tieneProyector": true,
+    "tieneComputadores": false,
+    "tieneClimatizacion": true,
+    "activa": true
+  },
+  {
+    "id": 8,
+    "codigo": "MP-02",
+    "nombre": "Sala de reuniones",
+    "tipo": "MULTIPROPOSITO",
+    "capacidad": 10,
+    "tieneProyector": true,
+    "tieneComputadores": false,
+    "tieneClimatizacion": false,
+    "activa": true
+  },
+  {
+    "id": 9,
+    "codigo": "SC-301",
+    "nombre": "Sala 301",
+    "tipo": "SALA_CLASES",
+    "capacidad": 30,
+    "tieneProyector": true,
+    "tieneComputadores": false,
+    "tieneClimatizacion": false,
+    "activa": false
+  }
+]
