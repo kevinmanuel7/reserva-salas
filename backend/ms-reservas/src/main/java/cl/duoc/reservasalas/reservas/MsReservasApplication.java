@@ -1,4 +1,4 @@
-package com.example.ms_reservas;
+package cl.duoc.reservasalas.reservas;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,8 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class MsReservasApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(MsReservasApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(MsReservasApplication.class, args);
+    }
 }

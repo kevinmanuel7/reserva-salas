@@ -1,0 +1,15 @@
+[
+  { "numero": 1, "horaInicio": "08:00", "horaFin": "09:00" },
+  { "numero": 2, "horaInicio": "09:05", "horaFin": "10:00" },
+  { "numero": 3, "horaInicio": "10:05", "horaFin": "11:00" },
+  { "numero": 4, "horaInicio": "11:05", "horaFin": "12:00" },
+  { "numero": 5, "horaInicio": "12:05", "horaFin": "13:00" },
+  { "numero": 6, "horaInicio": "13:05", "horaFin": "14:00" },
+  { "numero": 7, "horaInicio": "14:05", "horaFin": "15:00" },
+  { "numero": 8, "horaInicio": "15:05", "horaFin": "16:00" },
+  { "numero": 9, "horaInicio": "16:05", "horaFin": "17:00" },
+  { "numero": 10, "horaInicio": "17:05", "horaFin": "18:00" },
+  { "numero": 11, "horaInicio": "18:05", "horaFin": "19:00" },
+  { "numero": 12, "horaInicio": "19:05", "horaFin": "20:00" },
+  { "numero": 13, "horaInicio": "20:05", "horaFin": "21:00" }
+]
