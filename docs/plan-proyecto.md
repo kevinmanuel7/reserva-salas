@@ -429,6 +429,7 @@ La API tiene 15 endpoints repartidos en 3 microservicios. Todos responden JSON y
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
+| 4 | 2026-11-16 | Las reservas del dataset pasan al 16–27 de noviembre (14 días después, mismos días de la semana) | Que la agenda muestre reservas en la demo y que los casos de Postman usen fechas futuras |
 | 4 | 2026-11-13 | Nueva regla de cruce del usuario (sección 4) y nuevo error `409 USUARIO_OCUPADO` en `POST /reservas` y `POST /reservas/lote` | Una persona no puede estar en dos salas a la vez. Sin esta regla, una sala queda bloqueada sin uso y otro relator no la puede pedir (detectado al revisar la maqueta) |
 | 4 | 2026-11-13 | Casos de prueba 21 a 23 pasan del Relator 2 al Relator 1; los casos de `DELETE /salas/6`, que repetían los números 24 y 25, pasan a 26 y 27; nuevos casos 28 a 31 | Con la regla nueva, el Relator 2 ya tiene la reserva 7 en esos bloques y los casos 21 a 23 darían otro resultado |
 | 3 | 2026-11-12 | Nuevo `GET /reservas/disponibilidad`, público | La web se puede recorrer sin iniciar sesión: muestra qué bloques están ocupados, sin revelar quién reservó ni para qué |
@@ -826,36 +827,36 @@ Dos semanas hábiles, del lunes 2 al viernes 13 de noviembre de 2026. Incluyen a
 
 | id  | fecha      | salaId | bloques | horario       | usuarioId | actividad                         | estado    |
 |-----|------------|--------|---------|---------------|-----------|-----------------------------------|-----------|
-| 1   | 2026-11-02 | 1      | 1 a 3   | 08:00 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
-| 2   | 2026-11-02 | 1      | 4 a 5   | 11:05 – 13:00 | 4         | Python para análisis de datos     | ACTIVA    |
-| 3   | 2026-11-02 | 3      | 2 a 4   | 09:05 – 12:00 | 5         | Liderazgo de equipos              | ACTIVA    |
-| 4   | 2026-11-02 | 7      | 7 a 9   | 14:05 – 17:00 | 6         | Seminario de seguridad laboral    | ACTIVA    |
-| 5   | 2026-11-03 | 2      | 2 a 5   | 09:05 – 13:00 | 7         | Electrónica básica                | ACTIVA    |
-| 6   | 2026-11-03 | 1      | 11 a 13 | 18:05 – 21:00 | 3         | Excel avanzado vespertino         | ACTIVA    |
-| 7   | 2026-11-03 | 4      | 1 a 2   | 08:00 – 10:00 | 4         | Inducción de nuevos colaboradores | ACTIVA    |
-| 8   | 2026-11-03 | 8      | 6 a 6   | 13:05 – 14:00 | 1         | Reunión de coordinación           | ACTIVA    |
-| 9   | 2026-11-04 | 5      | 2 a 4   | 09:05 – 12:00 | 5         | Comunicación efectiva             | ACTIVA    |
-| 10  | 2026-11-04 | 1      | 2 a 4   | 09:05 – 12:00 | 6         | Power BI inicial                  | CANCELADA |
-| 11  | 2026-11-04 | 1      | 2 a 3   | 09:05 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
-| 12  | 2026-11-04 | 6      | 11 a 12 | 18:05 – 20:00 | 7         | Gestión del tiempo                | ACTIVA    |
-| 13  | 2026-11-05 | 7      | 1 a 4   | 08:00 – 12:00 | 4         | Charla de ciberseguridad          | ACTIVA    |
-| 14  | 2026-11-05 | 2      | 7 a 9   | 14:05 – 17:00 | 7         | Electrónica básica                | ACTIVA    |
-| 15  | 2026-11-05 | 3      | 10 a 12 | 17:05 – 20:00 | 5         | Liderazgo de equipos              | ACTIVA    |
-| 16  | 2026-11-06 | 1      | 7 a 10  | 14:05 – 18:00 | 6         | Power BI inicial                  | ACTIVA    |
-| 17  | 2026-11-06 | 4      | 2 a 3   | 09:05 – 11:00 | 3         | Excel básico                      | ACTIVA    |
-| 18  | 2026-11-06 | 8      | 5 a 5   | 12:05 – 13:00 | 1         | Reunión de coordinación           | ACTIVA    |
-| 19  | 2026-11-09 | 1      | 1 a 3   | 08:00 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
-| 20  | 2026-11-09 | 1      | 4 a 6   | 11:05 – 14:00 | 4         | Python para análisis de datos     | ACTIVA    |
-| 21  | 2026-11-09 | 7      | 11 a 13 | 18:05 – 21:00 | 6         | Seminario de seguridad laboral    | ACTIVA    |
-| 22  | 2026-11-10 | 3      | 2 a 4   | 09:05 – 12:00 | 5         | Comunicación efectiva             | ACTIVA    |
-| 23  | 2026-11-10 | 2      | 2 a 5   | 09:05 – 13:00 | 7         | Electrónica básica                | ACTIVA    |
-| 24  | 2026-11-10 | 6      | 8 a 9   | 15:05 – 17:00 | 3         | Excel básico                      | CANCELADA |
-| 25  | 2026-11-11 | 1      | 7 a 10  | 14:05 – 18:00 | 6         | Power BI inicial                  | ACTIVA    |
-| 26  | 2026-11-11 | 5      | 1 a 2   | 08:00 – 10:00 | 4         | Inducción de nuevos colaboradores | ACTIVA    |
-| 27  | 2026-11-12 | 7      | 3 a 6   | 10:05 – 14:00 | 5         | Jornada de liderazgo              | ACTIVA    |
-| 28  | 2026-11-12 | 4      | 11 a 13 | 18:05 – 21:00 | 7         | Gestión del tiempo                | ACTIVA    |
-| 29  | 2026-11-13 | 1      | 2 a 4   | 09:05 – 12:00 | 3         | Excel avanzado                    | ACTIVA    |
-| 30  | 2026-11-13 | 8      | 5 a 5   | 12:05 – 13:00 | 1         | Reunión de coordinación           | ACTIVA    |
+| 1   | 2026-11-16 | 1      | 1 a 3   | 08:00 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
+| 2   | 2026-11-16 | 1      | 4 a 5   | 11:05 – 13:00 | 4         | Python para análisis de datos     | ACTIVA    |
+| 3   | 2026-11-16 | 3      | 2 a 4   | 09:05 – 12:00 | 5         | Liderazgo de equipos              | ACTIVA    |
+| 4   | 2026-11-16 | 7      | 7 a 9   | 14:05 – 17:00 | 6         | Seminario de seguridad laboral    | ACTIVA    |
+| 5   | 2026-11-17 | 2      | 2 a 5   | 09:05 – 13:00 | 7         | Electrónica básica                | ACTIVA    |
+| 6   | 2026-11-17 | 1      | 11 a 13 | 18:05 – 21:00 | 3         | Excel avanzado vespertino         | ACTIVA    |
+| 7   | 2026-11-17 | 4      | 1 a 2   | 08:00 – 10:00 | 4         | Inducción de nuevos colaboradores | ACTIVA    |
+| 8   | 2026-11-17 | 8      | 6 a 6   | 13:05 – 14:00 | 1         | Reunión de coordinación           | ACTIVA    |
+| 9   | 2026-11-18 | 5      | 2 a 4   | 09:05 – 12:00 | 5         | Comunicación efectiva             | ACTIVA    |
+| 10  | 2026-11-18 | 1      | 2 a 4   | 09:05 – 12:00 | 6         | Power BI inicial                  | CANCELADA |
+| 11  | 2026-11-18 | 1      | 2 a 3   | 09:05 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
+| 12  | 2026-11-18 | 6      | 11 a 12 | 18:05 – 20:00 | 7         | Gestión del tiempo                | ACTIVA    |
+| 13  | 2026-11-19 | 7      | 1 a 4   | 08:00 – 12:00 | 4         | Charla de ciberseguridad          | ACTIVA    |
+| 14  | 2026-11-19 | 2      | 7 a 9   | 14:05 – 17:00 | 7         | Electrónica básica                | ACTIVA    |
+| 15  | 2026-11-19 | 3      | 10 a 12 | 17:05 – 20:00 | 5         | Liderazgo de equipos              | ACTIVA    |
+| 16  | 2026-11-20 | 1      | 7 a 10  | 14:05 – 18:00 | 6         | Power BI inicial                  | ACTIVA    |
+| 17  | 2026-11-20 | 4      | 2 a 3   | 09:05 – 11:00 | 3         | Excel básico                      | ACTIVA    |
+| 18  | 2026-11-20 | 8      | 5 a 5   | 12:05 – 13:00 | 1         | Reunión de coordinación           | ACTIVA    |
+| 19  | 2026-11-23 | 1      | 1 a 3   | 08:00 – 11:00 | 3         | Excel intermedio                  | ACTIVA    |
+| 20  | 2026-11-23 | 1      | 4 a 6   | 11:05 – 14:00 | 4         | Python para análisis de datos     | ACTIVA    |
+| 21  | 2026-11-23 | 7      | 11 a 13 | 18:05 – 21:00 | 6         | Seminario de seguridad laboral    | ACTIVA    |
+| 22  | 2026-11-24 | 3      | 2 a 4   | 09:05 – 12:00 | 5         | Comunicación efectiva             | ACTIVA    |
+| 23  | 2026-11-24 | 2      | 2 a 5   | 09:05 – 13:00 | 7         | Electrónica básica                | ACTIVA    |
+| 24  | 2026-11-24 | 6      | 8 a 9   | 15:05 – 17:00 | 3         | Excel básico                      | CANCELADA |
+| 25  | 2026-11-25 | 1      | 7 a 10  | 14:05 – 18:00 | 6         | Power BI inicial                  | ACTIVA    |
+| 26  | 2026-11-25 | 5      | 1 a 2   | 08:00 – 10:00 | 4         | Inducción de nuevos colaboradores | ACTIVA    |
+| 27  | 2026-11-26 | 7      | 3 a 6   | 10:05 – 14:00 | 5         | Jornada de liderazgo              | ACTIVA    |
+| 28  | 2026-11-26 | 4      | 11 a 13 | 18:05 – 21:00 | 7         | Gestión del tiempo                | ACTIVA    |
+| 29  | 2026-11-27 | 1      | 2 a 4   | 09:05 – 12:00 | 3         | Excel avanzado                    | ACTIVA    |
+| 30  | 2026-11-27 | 8      | 5 a 5   | 12:05 – 13:00 | 1         | Reunión de coordinación           | ACTIVA    |
 
 En los archivos JSON, la columna «bloques» se guarda como dos campos: bloqueInicio y bloqueFin. La columna «horario» es solo referencia para leer esta tabla; no se guarda.
 
@@ -873,11 +874,11 @@ Backend los guarda en la colección de Postman (docs/postman/). Todos usan el da
 | 4   | Relator 1     | GET /salas                                               | 200 con 8 salas (sin la SC-301)                                    |
 | 5   | Relator 1     | GET /salas?incluirInactivas=true                         | 403 SIN_PERMISO                                                    |
 | 6   | Coordinador 1 | GET /salas?incluirInactivas=true                         | 200 con 9 salas                                                    |
-| 7   | Relator 2     | Reservar sala 1, 2026-11-02, bloques 2 a 3               | 409 CRUCE_HORARIO (choca con la reserva 1)                         |
-| 8   | Relator 2     | Reservar sala 1, 2026-11-02, bloques 5 a 6               | 409 CRUCE_HORARIO (comparte el bloque 5 con la reserva 2)          |
-| 9   | Relator 2     | Reservar sala 1, 2026-11-02, bloques 6 a 7               | 201: empieza justo cuando termina la reserva 2                     |
-| 10  | Relator 2     | Reservar sala 2, 2026-11-02, bloques 1 a 3               | 201: mismos bloques que la reserva 1, pero otra sala               |
-| 11  | Relator 2     | Reservar sala 1, 2026-11-04, bloque 4 a 4                | 201: el bloque 4 solo lo ocupaba la reserva 10, que está cancelada |
+| 7   | Relator 2     | Reservar sala 1, 2026-11-16, bloques 2 a 3               | 409 CRUCE_HORARIO (choca con la reserva 1)                         |
+| 8   | Relator 2     | Reservar sala 1, 2026-11-16, bloques 5 a 6               | 409 CRUCE_HORARIO (comparte el bloque 5 con la reserva 2)          |
+| 9   | Relator 2     | Reservar sala 1, 2026-11-16, bloques 6 a 7               | 201: empieza justo cuando termina la reserva 2                     |
+| 10  | Relator 2     | Reservar sala 2, 2026-11-16, bloques 1 a 3               | 201: mismos bloques que la reserva 1, pero otra sala               |
+| 11  | Relator 2     | Reservar sala 1, 2026-11-18, bloque 4 a 4                | 201: el bloque 4 solo lo ocupaba la reserva 10, que está cancelada |
 | 12  | Relator 2     | Reservar con bloqueInicio 5 y bloqueFin 3                | 400 BLOQUE_INVALIDO                                                |
 | 13  | Relator 2     | Reservar con bloqueFin 14                                | 400 BLOQUE_INVALIDO                                                |
 | 14  | Relator 2     | Reservar la sala 9                                       | 400 SALA_INACTIVA                                                  |
@@ -885,19 +886,19 @@ Backend los guarda en la colección de Postman (docs/postman/). Todos usan el da
 | 16  | Relator 1     | PUT /reservas/3/cancelar (la reserva 3 es del Relator 3) | 403 SIN_PERMISO                                                    |
 | 17  | Coordinador 1 | PUT /reservas/3/cancelar                                 | 200 con la reserva en estado CANCELADA                             |
 | 18  | Nadie         | GET /salas?incluirInactivas=true sin token               | 401 TOKEN_INVALIDO                                                 |
-| 19  | Nadie         | GET /reservas?fecha=2026-11-02 sin token                 | 401 TOKEN_INVALIDO                                                 |
+| 19  | Nadie         | GET /reservas?fecha=2026-11-16 sin token                 | 401 TOKEN_INVALIDO                                                 |
 | 20  | Relator 1     | POST /auth/refresh con su token vigente                  | 200 con un token nuevo y el usuario                                |
-| 21  | Relator 1     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 1, 2026-11-03, bloque 12 a 12 | 409 CRUCE_HORARIO (choca con la reserva 6) y no se guarda ninguna  |
-| 22  | Relator 1     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 2 a 3 | 409 CRUCE_HORARIO: las dos del lote se cruzan entre sí             |
-| 23  | Relator 1     | Lote: sala 3, 2026-11-03, bloques 1 a 2 + sala 3, 2026-11-03, bloques 3 a 4 | 201 con las 2 reservas creadas                                     |
-| 24  | Nadie         | GET /reservas/disponibilidad?fecha=2026-11-02 sin token  | 200 con salaId, fecha y bloques de las reservas 1 a 4, sin nombre ni actividad |
+| 21  | Relator 1     | Lote: sala 3, 2026-11-17, bloques 1 a 2 + sala 1, 2026-11-17, bloque 12 a 12 | 409 CRUCE_HORARIO (choca con la reserva 6) y no se guarda ninguna  |
+| 22  | Relator 1     | Lote: sala 3, 2026-11-17, bloques 1 a 2 + sala 3, 2026-11-17, bloques 2 a 3 | 409 CRUCE_HORARIO: las dos del lote se cruzan entre sí             |
+| 23  | Relator 1     | Lote: sala 3, 2026-11-17, bloques 1 a 2 + sala 3, 2026-11-17, bloques 3 a 4 | 201 con las 2 reservas creadas                                     |
+| 24  | Nadie         | GET /reservas/disponibilidad?fecha=2026-11-16 sin token  | 200 con salaId, fecha y bloques de las reservas 1 a 4, sin nombre ni actividad |
 | 25  | Nadie         | GET /reservas/disponibilidad sin fecha                   | 400 DATOS_INVALIDOS                                                |
 | 26  | Relator 1     | DELETE /salas/6                                          | 403 SIN_PERMISO                                                    |
 | 27  | Coordinador 1 | DELETE /salas/6                                          | 200 con activa: false; después GET /salas devuelve 7 salas         |
-| 28  | Relator 2     | Reservar sala 5, 2026-11-02, bloques 5 a 6               | 409 USUARIO_OCUPADO (el Relator 2 ya tiene la reserva 2 en la sala 1, bloques 4 a 5) |
-| 29  | Relator 2     | Reservar sala 5, 2026-11-02, bloques 6 a 7               | 201: empieza justo cuando termina su reserva 2                     |
-| 30  | Relator 2     | Lote: sala 4, 2026-11-04, bloques 1 a 2 + sala 6, 2026-11-04, bloques 2 a 3 | 409 USUARIO_OCUPADO: las dos del lote comparten el bloque 2 en salas distintas, y no se guarda ninguna |
-| 31  | Relator 1     | Reservar sala 1, 2026-11-10, bloques 8 a 9               | 201: su reserva 24 en esos bloques está cancelada y no cuenta      |
+| 28  | Relator 2     | Reservar sala 5, 2026-11-16, bloques 5 a 6               | 409 USUARIO_OCUPADO (el Relator 2 ya tiene la reserva 2 en la sala 1, bloques 4 a 5) |
+| 29  | Relator 2     | Reservar sala 5, 2026-11-16, bloques 6 a 7               | 201: empieza justo cuando termina su reserva 2                     |
+| 30  | Relator 2     | Lote: sala 4, 2026-11-18, bloques 1 a 2 + sala 6, 2026-11-18, bloques 2 a 3 | 409 USUARIO_OCUPADO: las dos del lote comparten el bloque 2 en salas distintas, y no se guarda ninguna |
+| 31  | Relator 1     | Reservar sala 1, 2026-11-24, bloques 8 a 9               | 201: su reserva 24 en esos bloques está cancelada y no cuenta      |
 
 Los casos 7 a 11, 16 a 17, 23, 27, 29 y 31 modifican datos: después de correrlos, se recarga el dataset original.
 

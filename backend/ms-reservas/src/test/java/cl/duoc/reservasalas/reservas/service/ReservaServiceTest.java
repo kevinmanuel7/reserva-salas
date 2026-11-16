@@ -3,8 +3,10 @@ package cl.duoc.reservasalas.reservas.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -26,6 +28,7 @@ import cl.duoc.reservasalas.reservas.dto.DisponibilidadDto;
 import cl.duoc.reservasalas.reservas.dto.ReservaDto;
 import cl.duoc.reservasalas.reservas.exception.BloqueInvalidoException;
 import cl.duoc.reservasalas.reservas.exception.CruceHorarioException;
+import cl.duoc.reservasalas.reservas.exception.DatosInvalidosException;
 import cl.duoc.reservasalas.reservas.exception.FechaPasadaException;
 import cl.duoc.reservasalas.reservas.exception.ReservaNoEncontradaException;
 import cl.duoc.reservasalas.reservas.exception.SalaInactivaException;
@@ -200,6 +203,37 @@ class ReservaServiceTest {
 
         assertThrows(UsuarioOcupadoException.class, () ->
                 reservaService.crearLote(List.of(r1, r2), 3L, "Relator"));
+    }
+
+    @Test
+    void crearLote_reservaSinFecha_lanzaDatosInvalidosIndicandoCual() {
+        // Antes de comparar las reservas entre sí, se validan sus campos:
+        // una reserva sin fecha debe dar 400 DATOS_INVALIDOS (no un error 500).
+        CrearReservaRequest r1 = new CrearReservaRequest(1L, fechaFutura, 1, 2, "Taller 1");
+        CrearReservaRequest r2 = new CrearReservaRequest(1L, null, 3, 4, "Taller 2");
+
+        DatosInvalidosException error = assertThrows(DatosInvalidosException.class, () ->
+                reservaService.crearLote(List.of(r1, r2), 3L, "Relator"));
+
+        assertTrue(error.getMessage().startsWith("Reserva 2 de 2:"));
+        verify(reservaRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void crearLote_unaReservaChocaConOtraExistente_noGuardaNingunaEIndicaCual() {
+        // Todo o nada: si la reserva 2 choca, tampoco se guarda la 1.
+        CrearReservaRequest r1 = new CrearReservaRequest(1L, fechaFutura, 1, 1, "Taller 1");
+        CrearReservaRequest r2 = new CrearReservaRequest(2L, fechaFutura, 6, 7, "Taller 2");
+        // Solo la sala 2 tiene una reserva que choca (thenAnswer decide según el salaId recibido)
+        when(reservaRepository.buscarCrucesSala(any(), eq(fechaFutura), any(), any()))
+                .thenAnswer(inv -> Long.valueOf(2L).equals(inv.getArgument(0))
+                        ? List.of(reservaExistente) : List.of());
+
+        CruceHorarioException error = assertThrows(CruceHorarioException.class, () ->
+                reservaService.crearLote(List.of(r1, r2), 3L, "Relator"));
+
+        assertTrue(error.getMessage().startsWith("Reserva 2 de 2:"));
+        verify(reservaRepository, never()).saveAll(any());
     }
 
     @Test

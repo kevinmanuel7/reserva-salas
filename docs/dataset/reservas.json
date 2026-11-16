@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "fecha": "2026-11-02",
+    "fecha": "2026-11-16",
     "salaId": 1,
     "bloqueInicio": 1,
     "bloqueFin": 3,
@@ -12,7 +12,7 @@
   },
   {
     "id": 2,
-    "fecha": "2026-11-02",
+    "fecha": "2026-11-16",
     "salaId": 1,
     "bloqueInicio": 4,
     "bloqueFin": 5,
@@ -23,7 +23,7 @@
   },
   {
     "id": 3,
-    "fecha": "2026-11-02",
+    "fecha": "2026-11-16",
     "salaId": 3,
     "bloqueInicio": 2,
     "bloqueFin": 4,
@@ -34,7 +34,7 @@
   },
   {
     "id": 4,
-    "fecha": "2026-11-02",
+    "fecha": "2026-11-16",
     "salaId": 7,
     "bloqueInicio": 7,
     "bloqueFin": 9,
@@ -45,7 +45,7 @@
   },
   {
     "id": 5,
-    "fecha": "2026-11-03",
+    "fecha": "2026-11-17",
     "salaId": 2,
     "bloqueInicio": 2,
     "bloqueFin": 5,
@@ -56,7 +56,7 @@
   },
   {
     "id": 6,
-    "fecha": "2026-11-03",
+    "fecha": "2026-11-17",
     "salaId": 1,
     "bloqueInicio": 11,
     "bloqueFin": 13,
@@ -67,7 +67,7 @@
   },
   {
     "id": 7,
-    "fecha": "2026-11-03",
+    "fecha": "2026-11-17",
     "salaId": 4,
     "bloqueInicio": 1,
     "bloqueFin": 2,
@@ -78,7 +78,7 @@
   },
   {
     "id": 8,
-    "fecha": "2026-11-03",
+    "fecha": "2026-11-17",
     "salaId": 8,
     "bloqueInicio": 6,
     "bloqueFin": 6,
@@ -89,7 +89,7 @@
   },
   {
     "id": 9,
-    "fecha": "2026-11-04",
+    "fecha": "2026-11-18",
     "salaId": 5,
     "bloqueInicio": 2,
     "bloqueFin": 4,
@@ -100,7 +100,7 @@
   },
   {
     "id": 10,
-    "fecha": "2026-11-04",
+    "fecha": "2026-11-18",
     "salaId": 1,
     "bloqueInicio": 2,
     "bloqueFin": 4,
@@ -111,7 +111,7 @@
   },
   {
     "id": 11,
-    "fecha": "2026-11-04",
+    "fecha": "2026-11-18",
     "salaId": 1,
     "bloqueInicio": 2,
     "bloqueFin": 3,
@@ -122,7 +122,7 @@
   },
   {
     "id": 12,
-    "fecha": "2026-11-04",
+    "fecha": "2026-11-18",
     "salaId": 6,
     "bloqueInicio": 11,
     "bloqueFin": 12,
@@ -133,7 +133,7 @@
   },
   {
     "id": 13,
-    "fecha": "2026-11-05",
+    "fecha": "2026-11-19",
     "salaId": 7,
     "bloqueInicio": 1,
     "bloqueFin": 4,
@@ -144,7 +144,7 @@
   },
   {
     "id": 14,
-    "fecha": "2026-11-05",
+    "fecha": "2026-11-19",
     "salaId": 2,
     "bloqueInicio": 7,
     "bloqueFin": 9,
@@ -155,7 +155,7 @@
   },
   {
     "id": 15,
-    "fecha": "2026-11-05",
+    "fecha": "2026-11-19",
     "salaId": 3,
     "bloqueInicio": 10,
     "bloqueFin": 12,
@@ -166,7 +166,7 @@
   },
   {
     "id": 16,
-    "fecha": "2026-11-06",
+    "fecha": "2026-11-20",
     "salaId": 1,
     "bloqueInicio": 7,
     "bloqueFin": 10,
@@ -177,7 +177,7 @@
   },
   {
     "id": 17,
-    "fecha": "2026-11-06",
+    "fecha": "2026-11-20",
     "salaId": 4,
     "bloqueInicio": 2,
     "bloqueFin": 3,
@@ -188,7 +188,7 @@
   },
   {
     "id": 18,
-    "fecha": "2026-11-06",
+    "fecha": "2026-11-20",
     "salaId": 8,
     "bloqueInicio": 5,
     "bloqueFin": 5,
@@ -199,7 +199,7 @@
   },
   {
     "id": 19,
-    "fecha": "2026-11-09",
+    "fecha": "2026-11-23",
     "salaId": 1,
     "bloqueInicio": 1,
     "bloqueFin": 3,
@@ -210,7 +210,7 @@
   },
   {
     "id": 20,
-    "fecha": "2026-11-09",
+    "fecha": "2026-11-23",
     "salaId": 1,
     "bloqueInicio": 4,
     "bloqueFin": 6,
@@ -221,7 +221,7 @@
   },
   {
     "id": 21,
-    "fecha": "2026-11-09",
+    "fecha": "2026-11-23",
     "salaId": 7,
     "bloqueInicio": 11,
     "bloqueFin": 13,
@@ -232,7 +232,7 @@
   },
   {
     "id": 22,
-    "fecha": "2026-11-10",
+    "fecha": "2026-11-24",
     "salaId": 3,
     "bloqueInicio": 2,
     "bloqueFin": 4,
@@ -243,7 +243,7 @@
   },
   {
     "id": 23,
-    "fecha": "2026-11-10",
+    "fecha": "2026-11-24",
     "salaId": 2,
     "bloqueInicio": 2,
     "bloqueFin": 5,
@@ -254,7 +254,7 @@
   },
   {
     "id": 24,
-    "fecha": "2026-11-10",
+    "fecha": "2026-11-24",
     "salaId": 6,
     "bloqueInicio": 8,
     "bloqueFin": 9,
@@ -265,7 +265,7 @@
   },
   {
     "id": 25,
-    "fecha": "2026-11-11",
+    "fecha": "2026-11-25",
     "salaId": 1,
     "bloqueInicio": 7,
     "bloqueFin": 10,
@@ -276,7 +276,7 @@
   },
   {
     "id": 26,
-    "fecha": "2026-11-11",
+    "fecha": "2026-11-25",
     "salaId": 5,
     "bloqueInicio": 1,
     "bloqueFin": 2,
@@ -287,7 +287,7 @@
   },
   {
     "id": 27,
-    "fecha": "2026-11-12",
+    "fecha": "2026-11-26",
     "salaId": 7,
     "bloqueInicio": 3,
     "bloqueFin": 6,
@@ -298,7 +298,7 @@
   },
   {
     "id": 28,
-    "fecha": "2026-11-12",
+    "fecha": "2026-11-26",
     "salaId": 4,
     "bloqueInicio": 11,
     "bloqueFin": 13,
@@ -309,7 +309,7 @@
   },
   {
     "id": 29,
-    "fecha": "2026-11-13",
+    "fecha": "2026-11-27",
     "salaId": 1,
     "bloqueInicio": 2,
     "bloqueFin": 4,
@@ -320,7 +320,7 @@
   },
   {
     "id": 30,
-    "fecha": "2026-11-13",
+    "fecha": "2026-11-27",
     "salaId": 8,
     "bloqueInicio": 5,
     "bloqueFin": 5,

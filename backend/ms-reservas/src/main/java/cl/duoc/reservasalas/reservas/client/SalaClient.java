@@ -33,9 +33,11 @@ public class SalaClient {
 
     private final RestClient restClient;
 
-    public SalaClient(@Value("${servicios.ms-salas.url:http://localhost:8082}") String msSalasUrl,
-                      RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder.baseUrl(msSalasUrl).build();
+    // El RestClient se arma aquí mismo con RestClient.builder(). En Spring Boot 4 el
+    // RestClient.Builder ya no viene configurado por defecto con spring-boot-starter-webmvc,
+    // así que pedirlo en el constructor hacía que ms-reservas no pudiera arrancar.
+    public SalaClient(@Value("${servicios.ms-salas.url:http://localhost:8082}") String msSalasUrl) {
+        this.restClient = RestClient.builder().baseUrl(msSalasUrl).build();
     }
 
     public SalaInfo obtenerYValidarSala(Long salaId) {
@@ -57,8 +59,10 @@ public class SalaClient {
         } catch (SalaNoEncontradaException | SalaInactivaException e) {
             throw e;
         } catch (Exception e) {
+            // ms-salas apagado o con error: no es que la sala no exista, es una falla del sistema.
+            // Se lanza una excepción genérica para que el manejador global responda 500 ERROR_INTERNO.
             log.error("Error al consultar ms-salas para id {}: {}", salaId, e.getMessage());
-            throw new SalaNoEncontradaException("No se pudo verificar la existencia de la sala con id " + salaId);
+            throw new IllegalStateException("No se pudo consultar ms-salas", e);
         }
     }
 }

@@ -16,6 +16,8 @@ import cl.duoc.reservasalas.reservas.exception.CruceHorarioException;
 import cl.duoc.reservasalas.reservas.exception.DatosInvalidosException;
 import cl.duoc.reservasalas.reservas.exception.FechaPasadaException;
 import cl.duoc.reservasalas.reservas.exception.ReservaNoEncontradaException;
+import cl.duoc.reservasalas.reservas.exception.SalaInactivaException;
+import cl.duoc.reservasalas.reservas.exception.SalaNoEncontradaException;
 import cl.duoc.reservasalas.reservas.exception.SinPermisoException;
 import cl.duoc.reservasalas.reservas.exception.UsuarioOcupadoException;
 import cl.duoc.reservasalas.reservas.model.EstadoReserva;
@@ -65,7 +67,7 @@ public class ReservaService {
 
     @Transactional
     public ReservaDto crearReserva(CrearReservaRequest request, Long usuarioId, String nombreRelator) {
-        validarReservaIndividual(request, usuarioId);
+        validarReservaIndividual(request, usuarioId, "");
 
         Reserva reserva = new Reserva(
                 request.salaId(),
@@ -83,29 +85,38 @@ public class ReservaService {
 
     @Transactional
     public List<ReservaDto> crearLote(List<CrearReservaRequest> lote, Long usuarioId, String nombreRelator) {
+        // Validación 1 del lote: la lista viene y tiene al menos una reserva
         if (lote == null || lote.isEmpty()) {
             throw new DatosInvalidosException("La lista de reservas no puede estar vacía");
         }
 
-        // Validación 3 del lote: no cruces internos entre elementos del mismo lote
+        // Validación 2 del lote: cada reserva pasa las validaciones 1 a 7 de POST /reservas.
+        // Se hace ANTES de comparar entre ellas, porque esa comparación necesita fecha y bloques.
+        // El mensaje dice cuál reserva falló ("Reserva 2 de 3: ...").
+        for (int i = 0; i < lote.size(); i++) {
+            validarReservaIndividual(lote.get(i), usuarioId, prefijoLote(i, lote.size()));
+        }
+
+        // Validación 3 del lote: las reservas no se cruzan entre sí
         for (int i = 0; i < lote.size(); i++) {
             for (int j = i + 1; j < lote.size(); j++) {
                 CrearReservaRequest r1 = lote.get(i);
                 CrearReservaRequest r2 = lote.get(j);
 
                 if (r1.fecha().equals(r2.fecha()) && seSuperponen(r1, r2)) {
+                    String reservas = "Reservas " + (i + 1) + " y " + (j + 1) + " de " + lote.size() + ": ";
                     if (r1.salaId().equals(r2.salaId())) {
-                        throw new CruceHorarioException("Conflicto en el lote: hay reservas con cruce de horario para la sala con id " + r1.salaId());
+                        throw new CruceHorarioException(reservas + "se cruzan en la misma sala y horario");
                     } else {
-                        throw new UsuarioOcupadoException("Conflicto en el lote: el usuario tiene reservas superpuestas en el mismo horario");
+                        throw new UsuarioOcupadoException(reservas + "no puedes estar en dos salas a la misma hora");
                     }
                 }
             }
         }
 
+        // Validación 4 del lote: todo bien → se guardan todas en una sola transacción (@Transactional)
         List<Reserva> entidades = new ArrayList<>();
         for (CrearReservaRequest request : lote) {
-            validarReservaIndividual(request, usuarioId);
             entidades.add(new Reserva(
                     request.salaId(),
                     usuarioId,
@@ -135,41 +146,54 @@ public class ReservaService {
         return ReservaDto.desde(reservaRepository.save(reserva));
     }
 
-    private void validarReservaIndividual(CrearReservaRequest request, Long usuarioId) {
+    // "Reserva 2 de 3: " para los mensajes de error del lote.
+    private String prefijoLote(int indice, int total) {
+        return "Reserva " + (indice + 1) + " de " + total + ": ";
+    }
+
+    // Validaciones 1 a 7 de POST /reservas, en el orden del contrato.
+    // prefijo: "" en POST /reservas; "Reserva N de M: " en el lote, para saber cuál falló.
+    private void validarReservaIndividual(CrearReservaRequest request, Long usuarioId, String prefijo) {
         // 1. Campos obligatorios
-        if (request.salaId() == null || request.fecha() == null
+        if (request == null || request.salaId() == null || request.fecha() == null
                 || request.bloqueInicio() == null || request.bloqueFin() == null
                 || request.actividad() == null || request.actividad().isBlank()) {
-            throw new DatosInvalidosException("Todos los campos son obligatorios y la actividad no puede estar vacía");
+            throw new DatosInvalidosException(prefijo + "Todos los campos son obligatorios y la actividad no puede estar vacía");
         }
 
         // 2. Bloques entre 1 y 13 y fin >= inicio
         if (request.bloqueInicio() < 1 || request.bloqueInicio() > 13
                 || request.bloqueFin() < 1 || request.bloqueFin() > 13
                 || request.bloqueFin() < request.bloqueInicio()) {
-            throw new BloqueInvalidoException("Los bloques deben estar entre 1 y 13, y el bloque de término debe ser mayor o igual al de inicio");
+            throw new BloqueInvalidoException(prefijo + "Los bloques deben estar entre 1 y 13, y el bloque de término debe ser mayor o igual al de inicio");
         }
 
         // 3. Fecha no anterior a hoy
         if (request.fecha().isBefore(LocalDate.now())) {
-            throw new FechaPasadaException("No se pueden realizar reservas en fechas pasadas");
+            throw new FechaPasadaException(prefijo + "No se pueden realizar reservas en fechas pasadas");
         }
 
         // 4. Sala existe & 5. Sala activa (consulta a ms-salas)
-        salaClient.obtenerYValidarSala(request.salaId());
+        try {
+            salaClient.obtenerYValidarSala(request.salaId());
+        } catch (SalaNoEncontradaException e) {
+            throw new SalaNoEncontradaException(prefijo + e.getMessage());
+        } catch (SalaInactivaException e) {
+            throw new SalaInactivaException(prefijo + e.getMessage());
+        }
 
         // 6. Regla de cruce de horario (sala)
         List<Reserva> crucesSala = reservaRepository.buscarCrucesSala(
                 request.salaId(), request.fecha(), request.bloqueInicio(), request.bloqueFin());
         if (!crucesSala.isEmpty()) {
-            throw new CruceHorarioException("La sala ya está ocupada en alguno de esos bloques");
+            throw new CruceHorarioException(prefijo + "La sala ya está ocupada en alguno de esos bloques");
         }
 
         // 7. Regla de cruce del usuario
         List<Reserva> crucesUsuario = reservaRepository.buscarCrucesUsuario(
                 usuarioId, request.fecha(), request.bloqueInicio(), request.bloqueFin());
         if (!crucesUsuario.isEmpty()) {
-            throw new UsuarioOcupadoException("Ya tienes otra reserva en alguno de esos bloques");
+            throw new UsuarioOcupadoException(prefijo + "Ya tienes otra reserva en alguno de esos bloques");
         }
     }
 
