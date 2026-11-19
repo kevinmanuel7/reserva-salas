@@ -56,8 +56,7 @@ class AppContainer(context: Context) {
     /** "Ahora" de la app. En la maqueta siempre son las 09:55 de hoy (ver RelojMaqueta). */
     val reloj: Reloj = if (usarDatosFalsos) RelojMaqueta() else RelojSistema()
 
-    val repositorioAutenticacion: RepositorioAutenticacion =
-        if (usarDatosFalsos) AutenticacionFalsa(sesionDataStore) else authRepository
+    val repositorioAutenticacion: RepositorioAutenticacion = authRepository
 
     // Todavía no existen las versiones reales de estos tres (próxima evaluación).
     val repositorioSalas: RepositorioSalas = RepositorioSalasFalso()

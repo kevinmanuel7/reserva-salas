@@ -19,9 +19,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // URL base de ms-usuarios. El teléfono llega al computador con
-        // "adb reverse tcp:8081 tcp:8081". Retrofit exige que termine en "/".
-        buildConfigField("String", "URL_MS_USUARIOS", "\"http://localhost:8081/\"")
+        // URL base de cada microservicio.
+        buildConfigField("String", "URL_MS_USUARIOS", "\"http://localhost:8081/api/v1/\"")
+        buildConfigField("String", "URL_MS_SALAS", "\"http://localhost:8082/api/v1/\"")
+        buildConfigField("String", "URL_MS_RESERVAS", "\"http://localhost:8083/api/v1/\"")
     }
 
     buildTypes {
