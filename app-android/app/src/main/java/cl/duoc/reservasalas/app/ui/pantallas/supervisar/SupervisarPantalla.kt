@@ -1,250 +1,564 @@
+
 package cl.duoc.reservasalas.app.ui.pantallas.supervisar
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cl.duoc.reservasalas.app.ui.componentes.BarraSuperior
-import cl.duoc.reservasalas.app.ui.componentes.BotonPrincipal
-import cl.duoc.reservasalas.app.ui.theme.GrisCancelada
-import cl.duoc.reservasalas.app.ui.theme.NegroDuoc
-import cl.duoc.reservasalas.app.ui.theme.ReservaSalasTheme
-import cl.duoc.reservasalas.app.ui.theme.Superficie
-import cl.duoc.reservasalas.app.ui.theme.VerdeExito
+import androidx.compose.ui.platform.LocalContext
+import cl.duoc.reservasalas.app.ReservaSalasApp
+import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
+import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-val DuocBlack = Color(0xFF2D2926)
-val DuocYellow = Color(0xFFFFB81C)
-val BackgroundGray = Color(0xFFF4F4F6)
+private val FondoSupervisar = Color(0xFFF2F3F5)
+private val OscuroSupervisar = Color(0xFF2D2927)
+private val AmarilloSupervisar = Color(0xFFFFB91F)
+private val TextoSupervisar = Color(0xFF302D2B)
+private val GrisSupervisar = Color(0xFF605D5A)
+private val BordeSupervisar = Color(0xFFDADADA)
+private val VerdeSupervisar = Color(0xFF2E7D32)
+private val RojoSupervisar = Color(0xFFD32F2F)
 
-/**
- * Supervisar reserva (ruta supervisar/{idReserva}). Dueño: Bastián.
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SupervisarPantalla(
     idReserva: Int,
     volver: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var observaciones by remember { mutableStateOf("") }
-    var estadoSeleccionado by remember { mutableStateOf("En Uso") }
+    val app = LocalContext.current.applicationContext as ReservaSalasApp
+    val repo = app.container.repositorioReservas
+    val reservas by repo.reservas.collectAsState()
+    val salas by app.container.repositorioSalas.salas.collectAsState()
+
+    val reserva = reservas.find { it.id == idReserva }
+    val sala = salas.find { it.codigo == reserva?.codigoSala }
+
+    val scope = rememberCoroutineScope()
+
+    var confirmarAusencia by remember {
+        mutableStateOf(false)
+    }
+
+    val ahora = app.container.reloj.ahora()
+
+    val sinCheckin = reserva != null &&
+            reserva.estado == EstadoReserva.RESERVADA &&
+            ahora.toLocalDate() == reserva.fecha &&
+            ahora.toLocalTime().isAfter(
+                reserva.horaInicio.plusMinutes(15)
+            )
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(BackgroundGray)
+            .background(FondoSupervisar)
     ) {
-        BarraSuperior(titulo = "Supervisar Reserva #$idReserva", alVolver = volver)
+        EncabezadoSupervisar(volver = volver)
 
         Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // Tarjeta de Detalle de la Reserva
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            if (reserva == null) {
+                Text(
+                    text = "No se encontró la reserva",
+                    color = TextoSupervisar,
+                    fontSize = 17.sp
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, BordeSupervisar)
                 ) {
-                    Text(
-                        text = "Información de la Reserva",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DuocBlack
-                    )
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = reserva.codigoSala,
+                                    fontSize = 27.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextoSupervisar
+                                )
 
-                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                                val fecha = if (
+                                    reserva.fecha == ahora.toLocalDate()
+                                ) {
+                                    "Hoy"
+                                } else {
+                                    reserva.fecha.format(
+                                        DateTimeFormatter.ofPattern(
+                                            "dd/MM/yyyy"
+                                        )
+                                    )
+                                }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Sala:", fontWeight = FontWeight.Bold, color = DuocBlack)
-                        Text("S-101", color = Color.DarkGray)
-                    }
+                                Text(
+                                    text = "${sala?.nombre ?: "Sala"} · $fecha ${reserva.horaInicio}–${reserva.horaFin}",
+                                    fontSize = 14.sp,
+                                    color = GrisSupervisar
+                                )
+                            }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Docente:", fontWeight = FontWeight.Bold, color = DuocBlack)
-                        Text("Carlos Mendoza", color = Color.DarkGray)
-                    }
+                            EstadoSupervisar(
+                                estado = reserva.estado
+                            )
+                        }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Horario:", fontWeight = FontWeight.Bold, color = DuocBlack)
-                        Text("08:30 - 10:00", color = Color.DarkGray)
-                    }
+                        HorizontalDivider(
+                            color = BordeSupervisar
+                        )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Asignatura:", fontWeight = FontWeight.Bold, color = DuocBlack)
-                        Text("Aplicaciones Móviles", color = Color.DarkGray)
+                        Column(
+                            modifier = Modifier.padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Relator",
+                                    fontSize = 14.sp,
+                                    color = GrisSupervisar
+                                )
+
+                                Text(
+                                    text = reserva.nombreUsuario,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextoSupervisar
+                                )
+
+                                Text(
+                                    text = reserva.emailUsuario,
+                                    fontSize = 14.sp,
+                                    color = GrisSupervisar
+                                )
+                            }
+
+                            Column {
+                                Text(
+                                    text = "Motivo",
+                                    fontSize = 14.sp,
+                                    color = GrisSupervisar
+                                )
+
+                                Text(
+                                    text = reserva.motivo.ifBlank {
+                                        "Sin motivo especificado"
+                                    },
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextoSupervisar
+                                )
+                            }
+                        }
                     }
                 }
-            }
 
-            // Tarjeta de Registro de Incidencias / Observaciones
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                Text(
+                    text = "Seguimiento",
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextoSupervisar
+                )
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.dp, BordeSupervisar)
                 ) {
-                    Text(
-                        text = "Observaciones",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DuocBlack
-                    )
+                    Column(
+                        modifier = Modifier.padding(18.dp)
+                    ) {
+                        val tieneCheckIn = reserva.horaCheckIn != null
 
-                    OutlinedTextField(
-                        value = observaciones,
-                        onValueChange = { observaciones = it },
-                        label = { Text("Incidencias u observaciones") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3
-                    )
+                        val estaVerificada =
+                            reserva.estado == EstadoReserva.VERIFICADA
+
+                        PasoSeguimiento(
+                            titulo = "Reservada",
+                            descripcion = formatearCreacionSupervisar(
+                                reserva.creada.toString()
+                            ),
+                            color = OscuroSupervisar,
+                            tipo = 0,
+                            mostrarLinea = true
+                        )
+
+                        PasoSeguimiento(
+                            titulo = "Check-in con QR",
+                            descripcion = if (tieneCheckIn) {
+                                val fechaCheckIn = if (
+                                    reserva.fecha == ahora.toLocalDate()
+                                ) {
+                                    "Hoy"
+                                } else {
+                                    reserva.fecha.format(
+                                        DateTimeFormatter.ofPattern(
+                                            "dd/MM/yyyy"
+                                        )
+                                    )
+                                }
+
+                                "$fechaCheckIn, ${reserva.horaCheckIn}"
+                            } else {
+                                "Pendiente de check-in"
+                            },
+                            color = if (tieneCheckIn) {
+                                VerdeSupervisar
+                            } else {
+                                Color(0xFF909090)
+                            },
+                            tipo = if (tieneCheckIn) 0 else 1,
+                            mostrarLinea = true
+                        )
+
+                        PasoSeguimiento(
+                            titulo = "Verificada",
+                            descripcion = if (estaVerificada) {
+                                "Confirmada por coordinación"
+                            } else {
+                                "Pendiente: ir a la sala a confirmar"
+                            },
+                            color = if (estaVerificada) {
+                                VerdeSupervisar
+                            } else {
+                                Color(0xFF909090)
+                            },
+                            tipo = if (estaVerificada) 0 else 1,
+                            mostrarLinea = false
+                        )
+                    }
                 }
-            }
 
-            // Seguimiento de la reserva, como en la imagen 03-Supervisar-reserva.
-            Text(
-                text = "Seguimiento",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = NegroDuoc
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Superficie)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    PasoSeguimiento(
-                        titulo = "Reservada",
-                        detalle = "Martes 13, 16:20",
-                        color = NegroDuoc,
-                        completado = true
-                    )
-                    PasoSeguimiento(
-                        titulo = "Check-in con QR",
-                        detalle = "Hoy, 09:32",
-                        color = VerdeExito,
-                        completado = true
-                    )
-                    PasoSeguimiento(
-                        titulo = "Verificada",
-                        detalle = "Pendiente: ir a la sala a confirmar",
-                        color = GrisCancelada,
-                        completado = false
+                if (sinCheckin) {
+                    Text(
+                        text = "Esta reserva no tiene check-in después del plazo permitido. Puedes marcar al relator como no presentado. La sala no se libera automáticamente.",
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp,
+                        color = GrisSupervisar
                     )
                 }
             }
         }
 
-        // Botón fijo abajo, como en la imagen 03-Supervisar-reserva.
+        if (reserva != null &&
+            (
+                    reserva.estado == EstadoReserva.EN_USO ||
+                            sinCheckin
+                    )
+        ) {
+            HorizontalDivider(
+                color = BordeSupervisar
+            )
+
+            Surface(
+                color = Color.White
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    if (reserva.estado == EstadoReserva.EN_USO) {
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    repo.marcarVerificada(idReserva)
+                                    volver()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(54.dp),
+                            shape = RoundedCornerShape(11.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AmarilloSupervisar,
+                                contentColor = TextoSupervisar
+                            )
+                        ) {
+                            Text(
+                                text = "Marcar como verificada",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else if (sinCheckin) {
+                        OutlinedButton(
+                            onClick = {
+                                confirmarAusencia = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(54.dp),
+                            shape = RoundedCornerShape(11.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                RojoSupervisar
+                            ),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = RojoSupervisar
+                            )
+                        ) {
+                            Text(
+                                text = "Marcar no presentado",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (confirmarAusencia) {
+        AlertDialog(
+            onDismissRequest = {
+                confirmarAusencia = false
+            },
+            title = {
+                Text("¿Marcar no presentado?")
+            },
+            text = {
+                Text(
+                    "Esta acción registrará la ausencia del relator. La sala no se libera."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmarAusencia = false
+
+                        scope.launch {
+                            repo.marcarNoPresentado(idReserva)
+                            volver()
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "Confirmar",
+                        color = RojoSupervisar
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        confirmarAusencia = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun EncabezadoSupervisar(
+    volver: () -> Unit
+) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(66.dp)
+                .background(OscuroSupervisar)
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(
+                onClick = volver,
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Text(
+                    text = "‹",
+                    fontSize = 35.sp,
+                    color = Color.White
+                )
+            }
+
+            Text(
+                text = "Supervisar reserva",
+                fontSize = 23.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Superficie)
-                .padding(16.dp)
-        ) {
-            BotonPrincipal(
-                texto = "Marcar como verificada",
-                alPresionar = volver,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+                .height(4.dp)
+                .background(AmarilloSupervisar)
+        )
     }
 }
 
-/**
- * Un paso del seguimiento: un círculo (relleno si ya pasó, vacío si está pendiente),
- * el título del paso y su detalle debajo.
- */
+@Composable
+private fun EstadoSupervisar(
+    estado: EstadoReserva
+) {
+    val fondo = when (estado) {
+        EstadoReserva.EN_USO,
+        EstadoReserva.VERIFICADA -> VerdeSupervisar
+
+        EstadoReserva.RESERVADA -> Color(0xFFFFF2CC)
+
+        EstadoReserva.CANCELADA,
+        EstadoReserva.NO_PRESENTADO -> Color(0xFFFFE5E5)
+
+        else -> FondoSupervisar
+    }
+
+    val textoColor = when (estado) {
+        EstadoReserva.EN_USO,
+        EstadoReserva.VERIFICADA -> Color.White
+
+        EstadoReserva.CANCELADA,
+        EstadoReserva.NO_PRESENTADO -> RojoSupervisar
+
+        else -> TextoSupervisar
+    }
+
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = fondo
+    ) {
+        Text(
+            text = estado.texto,
+            modifier = Modifier.padding(
+                horizontal = 11.dp,
+                vertical = 6.dp
+            ),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = textoColor
+        )
+    }
+}
+
 @Composable
 private fun PasoSeguimiento(
     titulo: String,
-    detalle: String,
+    descripcion: String,
     color: Color,
-    completado: Boolean
+    tipo: Int,
+    mostrarLinea: Boolean
 ) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 65.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        val circulo = Modifier
-            .size(28.dp)
-            .clip(CircleShape)
-        Box(
-            modifier = if (completado) {
-                circulo.background(color)
-            } else {
-                circulo.border(2.dp, color, CircleShape)
+        Column(
+            modifier = Modifier.width(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Canvas(
+                modifier = Modifier.size(20.dp)
+            ) {
+                if (tipo == 0) {
+                    drawCircle(
+                        color = color
+                    )
+                } else {
+                    drawCircle(
+                        color = color,
+                        style = Stroke(width = 2.5.dp.toPx())
+                    )
+                }
             }
-        )
-        Column {
+
+            if (mostrarLinea) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(45.dp)
+                        .background(
+                            if (color == OscuroSupervisar) {
+                                OscuroSupervisar
+                            } else {
+                                BordeSupervisar
+                            }
+                        )
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 1.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
             Text(
                 text = titulo,
-                fontSize = 16.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (completado) NegroDuoc else GrisCancelada
+                color = if (tipo == 0) {
+                    TextoSupervisar
+                } else {
+                    GrisSupervisar
+                }
             )
+
             Text(
-                text = detalle,
+                text = descripcion,
                 fontSize = 14.sp,
-                color = GrisCancelada
+                lineHeight = 19.sp,
+                color = GrisSupervisar
             )
         }
     }
 }
 
-@Preview(showBackground = true, heightDp = 1100)
-@Composable
-private fun SupervisarPantallaPreview() {
-    ReservaSalasTheme {
-        SupervisarPantalla(idReserva = 1, volver = {})
+private fun formatearCreacionSupervisar(
+    valor: String
+): String {
+    return try {
+        val fecha = LocalDateTime.parse(valor)
+
+        val formato = DateTimeFormatter.ofPattern(
+            "EEEE d, HH:mm",
+            Locale.forLanguageTag("es-CL")
+        )
+
+        fecha.format(formato)
+            .replaceFirstChar { it.uppercase() }
+    } catch (e: Exception) {
+        valor.replace("T", " ")
     }
 }
