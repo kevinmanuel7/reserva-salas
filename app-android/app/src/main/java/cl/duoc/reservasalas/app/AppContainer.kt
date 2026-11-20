@@ -20,6 +20,8 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import cl.duoc.reservasalas.app.data.remote.TokenInterceptor
+import okhttp3.OkHttpClient
 
 /**
  * Inyección de dependencias manual: aquí se crea cada objeto una sola vez
@@ -39,9 +41,17 @@ class AppContainer(context: Context) {
     private val json = Json { ignoreUnknownKeys = true }
 
     // "by lazy": se crea la primera vez que alguien lo usa. En la maqueta nadie lo usa, así que no hay red.
+
+    // Cliente HTTP compartido: todas las peticiones pasan por TokenInterceptor.
+    private val clienteHttp: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(TokenInterceptor(sesionDataStore))
+            .build()
+    }
     private val usuariosApi: UsuariosApi by lazy {
         Retrofit.Builder()
             .baseUrl(BuildConfig.URL_MS_USUARIOS)
+            .client(clienteHttp)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(UsuariosApi::class.java)
