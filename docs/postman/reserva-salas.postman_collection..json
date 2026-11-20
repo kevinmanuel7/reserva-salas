@@ -1,0 +1,915 @@
+{
+  "info": {
+    "_postman_id": "f2ee8b19-5bfb-4696-b545-528d666ace70",
+    "name": "Reserva de salas – API v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "60292174",
+    "_collection_link": "https://go.postman.co/collection/60292174-f2ee8b19-5bfb-4696-b545-528d666ace70?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "0. Preparación",
+      "item": [
+        {
+          "name": "00 · Login Coordinador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.environment.set(\"tokenCoordinador\", pm.response.json().token);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"coordinador1@duocuc.test\", \"password\": \"{{password}}\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{urlUsuarios}}/api/v1/auth/login",
+              "host": [
+                "{{urlUsuarios}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. Autenticación",
+      "item": [
+        {
+          "name": "01 · Login Relator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.environment.set(\"tokenRelator\", pm.response.json().token);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"relator1@duocuc.test\", \"password\": \"{{password}}\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{urlUsuarios}}/api/v1/auth/login",
+              "host": [
+                "{{urlUsuarios}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02 · Login contraseña incorrecta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Código CREDENCIALES_INVALIDAS\", () => pm.expect(pm.response.json().codigo).to.eql(\"CREDENCIALES_INVALIDAS\"));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"relator1@duocuc.test\", \"password\": \"incorrecta\" }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{urlUsuarios}}/api/v1/auth/login",
+              "host": [
+                "{{urlUsuarios}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03 · Renovar token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenRelator}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{urlUsuarios}}/api/v1/auth/refresh",
+              "host": [
+                "{{urlUsuarios}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Salas",
+      "item": [
+        {
+          "name": "04 · Listar salas públicas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{urlSalas}}/api/v1/salas",
+              "host": [
+                "{{urlSalas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "salas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05 · Listar salas inactivas sin permiso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"Código SIN_PERMISO\", () => pm.expect(pm.response.json().codigo).to.eql(\"SIN_PERMISO\"));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenRelator}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{urlSalas}}/api/v1/salas?incluirInactivas=true",
+              "host": [
+                "{{urlSalas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "salas"
+              ],
+              "query": [
+                {
+                  "key": "incluirInactivas",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06 · Crear sala",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCoordinador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n\"codigo\": \"LAB-03\",\n  \"nombre\": \"Laboratorio de Redes\",\n  \"tipo\": \"LABORATORIO\",\n  \"capacidad\": 20,\n  \"tieneProyector\": true,\n  \"tieneComputadores\": true,\n  \"tieneClimatizacion\": false,\n  \"activa\": true\n\n\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{urlSalas}}/api/v1/salas",
+              "host": [
+                "{{urlSalas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "salas"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "06 · Crear sala",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"codigo\":\"LAB-09\",\"nombre\":\"Laboratorio de Redes\",\"tipo\":\"LABORATORIO\",\"capacidad\":20,\"tieneProyector\":true,\"tieneComputadores\":true,\"tieneClimatizacion\":false,\"activa\":true}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{urlSalas}}/api/v1/salas",
+                  "host": [
+                    "{{urlSalas}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "salas"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Access-Control-Request-Method"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Access-Control-Request-Headers"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, no-store, max-age=0, must-revalidate"
+                },
+                {
+                  "key": "Pragma",
+                  "value": "no-cache"
+                },
+                {
+                  "key": "Expires",
+                  "value": "0"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "DENY"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Date",
+                  "value": "Fri, 20 Nov 2026 18:42:24 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"codigo\": \"DATOS_INVALIDOS\",\n    \"mensaje\": \"Ya existe una sala con el código LAB-09\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "07 · Actualizar sala",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCoordinador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"codigo\":\"SC-202\",\"nombre\":\"Sala 202\",\"tipo\":\"SALA_CLASES\",\"capacidad\":22,\"tieneProyector\":false,\"tieneComputadores\":false,\"tieneClimatizacion\":false,\"activa\":true}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{urlSalas}}/api/v1/salas/6",
+              "host": [
+                "{{urlSalas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "salas",
+                "6"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08 · Eliminar sala (baja lógica)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenCoordinador}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{urlSalas}}/api/v1/salas/6",
+              "host": [
+                "{{urlSalas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "salas",
+                "6"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Reservas",
+      "item": [
+        {
+          "name": "09 · Listar reservas sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Código TOKEN_INVALIDO\", () => pm.expect(pm.response.json().codigo).to.eql(\"TOKEN_INVALIDO\"));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{urlReservas}}/api/v1/reservas?fecha=2026-11-23",
+              "host": [
+                "{{urlReservas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reservas"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-11-23"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10 · Disponibilidad pública",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{urlReservas}}/api/v1/reservas/disponibilidad?fecha=2026-11-26",
+              "host": [
+                "{{urlReservas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reservas",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "fecha",
+                  "value": "2026-11-26"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11 · Cruce de horario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Código CRUCE_HORARIO\", () => pm.expect(pm.response.json().codigo).to.eql(\"CRUCE_HORARIO\"));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenRelator}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"salaId\": 1,\n  \"fecha\": \"2026-11-23\",\n  \"bloqueInicio\": 2,\n  \"bloqueFin\": 3,\n  \"actividad\": \"Prueba Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{urlReservas}}/api/v1/reservas",
+              "host": [
+                "{{urlReservas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reservas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "12 · Crear reserva",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"idReserva\", pm.response.json().id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenRelator}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"salaId\": 2,\n  \"fecha\": \"2026-11-25\",\n  \"bloqueInicio\": 1,\n  \"bloqueFin\": 2,\n  \"actividad\": \"Prueba Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{urlReservas}}/api/v1/reservas",
+              "host": [
+                "{{urlReservas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reservas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "13 · Lote con cruce (todo o nada)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Código CRUCE_HORARIO\", () => pm.expect(pm.response.json().codigo).to.eql(\"CRUCE_HORARIO\"));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenRelator}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"salaId\": 3,\n    \"fecha\": \"2026-11-25\",\n    \"bloqueInicio\": 5,\n    \"bloqueFin\": 6,\n    \"actividad\": \"Prueba Postman\"\n  },\n  {\n    \"salaId\": 1,\n    \"fecha\": \"2026-11-25\",\n    \"bloqueInicio\": 8,\n    \"bloqueFin\": 8,\n    \"actividad\": \"Prueba Postman\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{urlReservas}}/api/v1/reservas/lote",
+              "host": [
+                "{{urlReservas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reservas",
+                "lote"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "14 · Lote exitoso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenRelator}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"salaId\": 3,\n    \"fecha\": \"2026-11-25\",\n    \"bloqueInicio\": 5,\n    \"bloqueFin\": 6,\n    \"actividad\": \"Prueba Postman\"\n  },\n  {\n    \"salaId\": 3,\n    \"fecha\": \"2026-11-25\",\n    \"bloqueInicio\": 7,\n    \"bloqueFin\": 8,\n    \"actividad\": \"Prueba Postman\"\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{urlReservas}}/api/v1/reservas/lote",
+              "host": [
+                "{{urlReservas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reservas",
+                "lote"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "15 · Mis reservas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Solo reservas activas del Relator 1\", () => {",
+                  "  pm.response.json().forEach((r) => {",
+                  "    pm.expect(r.usuarioId).to.eql(3);",
+                  "    pm.expect(r.estado).to.eql(\"ACTIVA\");",
+                  "  });",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenRelator}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{urlReservas}}/api/v1/reservas/mias",
+              "host": [
+                "{{urlReservas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reservas",
+                "mias"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "16 · Cancelar reserva",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenRelator}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{urlReservas}}/api/v1/reservas/{{idReserva}}/cancelar",
+              "host": [
+                "{{urlReservas}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reservas",
+                "{{idReserva}}",
+                "cancelar"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
