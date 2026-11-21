@@ -324,8 +324,8 @@ El sistema maneja cuatro entidades (Sala, Usuario, Bloque y Reserva), más la co
 | tieneClimatizacion | Verdadero/falso | false                       | Filtro de equipamiento                                                          |
 | activa             | Verdadero/falso | true                        | false = fuera de servicio. No aparece para reservar, pero conserva su historial |
 | ubicacion          | Texto, opcional | "Edificio A, piso 2"        | Dónde está la sala (Contrato 1 v5)                                              |
-| horaApertura       | Hora, opcional  | "09:05"                     | Horario propio de la sala. null = usa el horario general de bloques (v5)        |
-| horaCierre         | Hora, opcional  | "18:00"                     | Horario propio de la sala. null = usa el horario general de bloques (v5)        |
+| horaApertura       | Hora, opcional  | "09:05"                     | Horario propio de la sala. null = usa el horario general de bloques (v5). Se vuelve a null con `usaHorarioGeneral: true` en PUT (v9) |
+| horaCierre         | Hora, opcional  | "18:00"                     | Horario propio de la sala. null = usa el horario general de bloques (v5). Se vuelve a null con `usaHorarioGeneral: true` en PUT (v9) |
 | equipos            | Lista de Equipo | (ver abajo)                 | Equipamiento de la sala, con su estado y comentarios (v5)                       |
 
 **Equipo** (cada elemento de `equipos`; en MySQL se guarda en la tabla `sala_equipo`, unida a la sala por `salaId`):
@@ -460,6 +460,7 @@ La API tiene 22 endpoints repartidos en 3 microservicios. Todos responden JSON y
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
+| 9 | 2026-11-21 | `PUT /salas/{id}` acepta el campo opcional `usaHorarioGeneral` (booleano, solo en la petición, al final). Si es `true`, `horaApertura` y `horaCierre` quedan en null aunque lleguen con valor. Si es `false` o no viene, sigue la regla de la versión 5 (una hora null conserva la guardada). No cambia `POST /salas`, la respuesta de sala ni ningún campo, ruta o validación anterior | Con la regla de la versión 5 no había forma de devolver una sala al horario general |
 | 8 | 2026-11-20 | Usuario suma el campo opcional `fechaNacimiento` (texto «AAAA-MM-DD»), al final del objeto `usuario`. Vale null hasta que el usuario la registra (los usuarios del dataset parten en null). El login y el refresh no cambian, salvo este campo al final de `usuario` | El usuario registra su fecha de nacimiento |
 | 8 | 2026-11-20 | Nuevos `GET /usuarios/me` y `PUT /usuarios/me` (ambos roles, con token). El usuario sale del token (`sub`), nunca de la ruta. PUT recibe solo `fechaNacimiento`; si llegan nombre, email, rol u otros campos, se ignoran. Si falta, tiene otro formato, es futura o el usuario tendría menos de 18 años → `400 DATOS_INVALIDOS` | Cada usuario ve y completa sus propios datos, sin poder cambiar su identidad ni su rol |
 | 7 | 2026-11-20 | Nuevo recurso **horario general** (una sola fila de configuración, sección 4): `apertura` y `cierre` (texto «HH:MM»), `pausaMinutos` (entero) y `dias` (lista de días en inglés y MAYÚSCULAS: `MONDAY` … `SUNDAY`). Por defecto: 08:00 a 21:00, pausa de 5 minutos, lunes a viernes. Si la tabla está vacía al arrancar, ms-reservas crea la fila con esos valores | El coordinador edita el horario general (requisito del mandante, sección 1) |
@@ -566,6 +567,8 @@ La columna «Quién» indica qué rol puede usar el endpoint. Si otro rol lo int
 | DELETE | /api/v1/salas/{id}                   | Coordinador | Nada                                                                                  | 200 con la sala en `activa: false` · 403 · 404                          |
 
 Desde la versión 5, POST y PUT también aceptan los campos opcionales `ubicacion`, `horaApertura`, `horaCierre` y `equipos`. En PUT, los que llegan null (o no vienen) conservan su valor guardado. Si llega `equipos`, los tres booleanos de equipamiento se calculan desde la lista (sección 4).
+
+Desde la versión 9, PUT también acepta `usaHorarioGeneral` (opcional). Con `true`, `horaApertura` y `horaCierre` quedan en null y la sala vuelve al horario general, aunque las horas lleguen con valor. Con `false` o sin el campo, rige la regla anterior. Este campo no se guarda ni aparece en la respuesta: la sala usa el horario general cuando sus dos horas son null.
 
 DELETE /salas/{id} **no borra la fila**: la marca como inactiva (regla «Retirar una sala» de la sección 1). La sala deja de aparecer para reservar, pero sus reservas pasadas siguen apuntando a ella. Para reactivarla se usa PUT con `activa: true`.
 

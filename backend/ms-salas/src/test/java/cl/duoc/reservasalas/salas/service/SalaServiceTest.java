@@ -3,6 +3,7 @@ package cl.duoc.reservasalas.salas.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -126,7 +127,7 @@ class SalaServiceTest {
     void actualizarSala_cuandoDatosSonValidos_actualizaYDevuelveDto() {
         ActualizarSalaRequest request = new ActualizarSalaRequest(
                 "LAB-01-MOD", "Laboratorio Renovado", TipoSala.LABORATORIO, 30, true, true, true, true,
-                null, null, null, null
+                null, null, null, null, null
         );
         when(salaRepository.findById(1L)).thenReturn(Optional.of(salaPrueba));
         when(salaRepository.existsByCodigoAndIdNot("LAB-01-MOD", 1L)).thenReturn(false);
@@ -143,7 +144,7 @@ class SalaServiceTest {
     void actualizarSala_cuandoNuevoCodigoPerteneceAOtraSala_lanzaCodigoSalaDuplicadoException() {
         ActualizarSalaRequest request = new ActualizarSalaRequest(
                 "LAB-02", "Laboratorio Duplicado", TipoSala.LABORATORIO, 20, true, true, false, true,
-                null, null, null, null
+                null, null, null, null, null
         );
         when(salaRepository.findById(1L)).thenReturn(Optional.of(salaPrueba));
         when(salaRepository.existsByCodigoAndIdNot("LAB-02", 1L)).thenReturn(true);
@@ -215,7 +216,7 @@ class SalaServiceTest {
 
         ActualizarSalaRequest request = new ActualizarSalaRequest(
                 "LAB-01", "Laboratorio Renovado", TipoSala.LABORATORIO, 30, true, true, true, true,
-                null, null, null, null
+                null, null, null, null, null
         );
         when(salaRepository.findById(1L)).thenReturn(Optional.of(salaPrueba));
         when(salaRepository.existsByCodigoAndIdNot("LAB-01", 1L)).thenReturn(false);
@@ -239,7 +240,8 @@ class SalaServiceTest {
                 "LAB-01", "Laboratorio Computación 1", TipoSala.LABORATORIO, 24, true, true, true, true,
                 null, null, null,
                 List.of(new EquipoDto("Computadores", EstadoEquipo.OPERATIVO, null),
-                        new EquipoDto("Pizarra", EstadoEquipo.OPERATIVO, null))
+                        new EquipoDto("Pizarra", EstadoEquipo.OPERATIVO, null)),
+                null
         );
         when(salaRepository.findById(1L)).thenReturn(Optional.of(salaPrueba));
         when(salaRepository.existsByCodigoAndIdNot("LAB-01", 1L)).thenReturn(false);
@@ -260,7 +262,7 @@ class SalaServiceTest {
 
         ActualizarSalaRequest request = new ActualizarSalaRequest(
                 "LAB-01", "Laboratorio Computación 1", TipoSala.LABORATORIO, 24, true, true, true, true,
-                null, null, null, List.of()
+                null, null, null, List.of(), null
         );
         when(salaRepository.findById(1L)).thenReturn(Optional.of(salaPrueba));
         when(salaRepository.existsByCodigoAndIdNot("LAB-01", 1L)).thenReturn(false);
@@ -272,5 +274,65 @@ class SalaServiceTest {
         assertFalse(resultado.tieneComputadores());
         assertFalse(resultado.tieneClimatizacion());
         assertTrue(resultado.equipos().isEmpty());
+    }
+
+    // --- Versión 9: usaHorarioGeneral ---
+
+    // La sala parte con horario propio 08:00–14:00 y se actualiza con las horas y el
+    // usaHorarioGeneral indicados. Devuelve la sala como queda tras el PUT.
+    private SalaDto actualizarHorario(LocalTime apertura, LocalTime cierre, Boolean usaHorarioGeneral) {
+        salaPrueba.setHoraApertura(LocalTime.of(8, 0));
+        salaPrueba.setHoraCierre(LocalTime.of(14, 0));
+
+        ActualizarSalaRequest request = new ActualizarSalaRequest(
+                "LAB-01", "Laboratorio Computación 1", TipoSala.LABORATORIO, 24, true, true, true, true,
+                null, apertura, cierre, null, usaHorarioGeneral
+        );
+        when(salaRepository.findById(1L)).thenReturn(Optional.of(salaPrueba));
+        when(salaRepository.existsByCodigoAndIdNot("LAB-01", 1L)).thenReturn(false);
+        when(salaRepository.save(any(Sala.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        return salaService.actualizarSala(1L, request);
+    }
+
+    @Test
+    void actualizarSala_conUsaHorarioGeneralTrue_dejaLasHorasEnNullAunqueLleguenConValor() {
+        SalaDto resultado = actualizarHorario(LocalTime.of(9, 0), LocalTime.of(18, 0), true);
+
+        assertNull(resultado.horaApertura());
+        assertNull(resultado.horaCierre());
+    }
+
+    @Test
+    void actualizarSala_conUsaHorarioGeneralFalse_guardaLasHorasNuevas() {
+        SalaDto resultado = actualizarHorario(LocalTime.of(9, 0), LocalTime.of(18, 0), false);
+
+        assertEquals(LocalTime.of(9, 0), resultado.horaApertura());
+        assertEquals(LocalTime.of(18, 0), resultado.horaCierre());
+    }
+
+    @Test
+    void actualizarSala_conUsaHorarioGeneralFalseYHorasNull_conservaLasGuardadas() {
+        SalaDto resultado = actualizarHorario(null, null, false);
+
+        assertEquals(LocalTime.of(8, 0), resultado.horaApertura());
+        assertEquals(LocalTime.of(14, 0), resultado.horaCierre());
+    }
+
+    @Test
+    void actualizarSala_conUsaHorarioGeneralNullYHorasNull_conservaLasGuardadas() {
+        // Así actualiza la web: no envía usaHorarioGeneral ni las horas.
+        SalaDto resultado = actualizarHorario(null, null, null);
+
+        assertEquals(LocalTime.of(8, 0), resultado.horaApertura());
+        assertEquals(LocalTime.of(14, 0), resultado.horaCierre());
+    }
+
+    @Test
+    void actualizarSala_conUsaHorarioGeneralNull_guardaLasHorasNuevas() {
+        SalaDto resultado = actualizarHorario(LocalTime.of(9, 0), LocalTime.of(18, 0), null);
+
+        assertEquals(LocalTime.of(9, 0), resultado.horaApertura());
+        assertEquals(LocalTime.of(18, 0), resultado.horaCierre());
     }
 }

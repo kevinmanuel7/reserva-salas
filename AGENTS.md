@@ -62,6 +62,9 @@ crear clases, tablas o endpoints.
 - Versión 8 (20/11/2026): Usuario suma `fechaNacimiento` (opcional, al final), y se agregan
   `GET /usuarios/me` y `PUT /usuarios/me` (ambos roles, con token). El PUT solo cambia
   `fechaNacimiento` (no futura y mayor de 18 años); nombre, email y rol no se modifican.
+- Versión 9 (21/11/2026): `PUT /salas/{id}` acepta `usaHorarioGeneral` (opcional). Con
+  `true`, `horaApertura` y `horaCierre` quedan en null; con `false` o null, una hora null
+  conserva la guardada (regla de la versión 5).
 - La misma API la consume también el frontend web del ramo Desarrollo Fullstack II
   (repositorio `reserva-salas-web`). Un cambio de contrato afecta a la app y a la web.
 - Si este archivo y el plan se contradicen, preguntar antes de programar.

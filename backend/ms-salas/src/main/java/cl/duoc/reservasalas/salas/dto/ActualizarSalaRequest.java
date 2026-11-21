@@ -47,6 +47,11 @@ public record ActualizarSalaRequest(
         @JsonFormat(pattern = "HH:mm")
         LocalTime horaCierre,
 
-        List<@Valid EquipoDto> equipos
+        List<@Valid EquipoDto> equipos,
+
+        // Versión 9 del Contrato 1 (opcional). true = la sala vuelve al horario general:
+        // horaApertura y horaCierre quedan en null aunque lleguen con valor.
+        // false o null = se mantiene la regla anterior de las horas.
+        Boolean usaHorarioGeneral
 ) {
 }

@@ -89,11 +89,18 @@ public class SalaService {
         if (request.ubicacion() != null) {
             sala.setUbicacion(request.ubicacion());
         }
-        if (request.horaApertura() != null) {
-            sala.setHoraApertura(request.horaApertura());
-        }
-        if (request.horaCierre() != null) {
-            sala.setHoraCierre(request.horaCierre());
+        // Versión 9: usaHorarioGeneral = true borra el horario propio (horas en null), así
+        // la sala usa el horario general. Boolean.TRUE.equals(...) evita un error si llega null.
+        if (Boolean.TRUE.equals(request.usaHorarioGeneral())) {
+            sala.setHoraApertura(null);
+            sala.setHoraCierre(null);
+        } else {
+            if (request.horaApertura() != null) {
+                sala.setHoraApertura(request.horaApertura());
+            }
+            if (request.horaCierre() != null) {
+                sala.setHoraCierre(request.horaCierre());
+            }
         }
         if (request.equipos() != null) {
             reemplazarEquipos(sala, request.equipos());
