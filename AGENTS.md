@@ -65,6 +65,11 @@ crear clases, tablas o endpoints.
 - Versión 9 (21/11/2026): `PUT /salas/{id}` acepta `usaHorarioGeneral` (opcional). Con
   `true`, `horaApertura` y `horaCierre` quedan en null; con `false` o null, una hora null
   conserva la guardada (regla de la versión 5).
+- Versión 10 (21/11/2026): Usuario suma `telefono` y `area` (opcionales, al final). `PUT
+  /usuarios/me` recibe `fechaNacimiento`, `telefono` («+569» y 8 dígitos) y `area` (máx. 60),
+  todos opcionales: null conserva lo guardado. Nuevos `PUT /usuarios/me/password` (204;
+  `400 CONTRASENA_INCORRECTA` si la actual no coincide) y `GET /usuarios/{id}` (solo
+  coordinador; `404 USUARIO_NO_ENCONTRADO`).
 - La misma API la consume también el frontend web del ramo Desarrollo Fullstack II
   (repositorio `reserva-salas-web`). Un cambio de contrato afecta a la app y a la web.
 - Si este archivo y el plan se contradicen, preguntar antes de programar.

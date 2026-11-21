@@ -4,14 +4,15 @@ import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
-import jakarta.validation.constraints.NotNull;
-
 /**
- * Cuerpo de PUT /api/v1/usuarios/me. Solo trae fechaNacimiento: si la petición
- * envía nombre, email o rol, Jackson los ignora porque no existen en este record.
+ * Cuerpo de PUT /api/v1/usuarios/me (Contrato 1 v10). Los tres campos son opcionales:
+ * el que llega null (o no viene) conserva el valor guardado. Si la petición envía
+ * nombre, email o rol, Jackson los ignora porque no existen en este record.
+ * Las reglas de cada campo se revisan en UsuarioService.
  */
 public record ActualizarPerfilRequest(
-        @NotNull(message = "La fecha de nacimiento es obligatoria")
         @JsonFormat(pattern = "yyyy-MM-dd")
-        LocalDate fechaNacimiento) {
+        LocalDate fechaNacimiento,
+        String telefono,
+        String area) {
 }

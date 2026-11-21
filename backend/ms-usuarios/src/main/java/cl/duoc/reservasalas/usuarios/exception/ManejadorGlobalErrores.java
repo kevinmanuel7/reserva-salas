@@ -8,6 +8,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import cl.duoc.reservasalas.usuarios.dto.ErrorResponse;
 
@@ -39,6 +40,22 @@ public class ManejadorGlobalErrores {
     @ExceptionHandler(DatosInvalidosException.class)
     public ResponseEntity<ErrorResponse> reglaNoCumplida(DatosInvalidosException ex) {
         return responder(HttpStatus.BAD_REQUEST, "DATOS_INVALIDOS", ex.getMessage());
+    }
+
+    // Un parámetro de la ruta no tiene el tipo esperado (ejemplo: /usuarios/abc) → 400 DATOS_INVALIDOS.
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> parametroInvalido(MethodArgumentTypeMismatchException ex) {
+        return responder(HttpStatus.BAD_REQUEST, "DATOS_INVALIDOS", "El parámetro " + ex.getName() + " no es válido");
+    }
+
+    @ExceptionHandler(ContrasenaIncorrectaException.class)
+    public ResponseEntity<ErrorResponse> contrasenaIncorrecta(ContrasenaIncorrectaException ex) {
+        return responder(HttpStatus.BAD_REQUEST, "CONTRASENA_INCORRECTA", ex.getMessage());
+    }
+
+    @ExceptionHandler(UsuarioNoEncontradoException.class)
+    public ResponseEntity<ErrorResponse> usuarioNoEncontrado(UsuarioNoEncontradoException ex) {
+        return responder(HttpStatus.NOT_FOUND, "USUARIO_NO_ENCONTRADO", ex.getMessage());
     }
 
     @ExceptionHandler(CredencialesInvalidasException.class)

@@ -350,6 +350,8 @@ Nombres de equipo que usa la app (catálogo `CATALOGO_EQUIPOS`): "Proyector", "C
 | rol      | Lista cerrada | "RELATOR"              | Solo RELATOR o COORDINADOR                              |
 | password | Texto         | (nunca se muestra)     | Solo existe en el backend, guardada como hash           |
 | fechaNacimiento | Fecha «AAAA-MM-DD» (opcional) | "1990-05-20" | La registra el propio usuario. null hasta entonces. Desde la versión 8 |
+| telefono | Texto (opcional) | "+56912345678" | Celular chileno: «+569» y 8 dígitos. Lo registra el propio usuario. null hasta entonces. Desde la versión 10 |
+| area     | Texto (opcional) | "Informática" | Área o carrera del usuario, máximo 60 caracteres. null hasta que la registra. Desde la versión 10 |
 
 Dos reglas sobre la contraseña:
 
@@ -454,12 +456,16 @@ El backend es quien decide si hay cruce (de sala o del usuario), porque es el ú
 
 ## 5. Contrato 1: API REST (Backend ↔ Datos de la app)
 
-La API tiene 22 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}`, `GET /api/v1/bloques`, `GET /api/v1/reservas/disponibilidad` y `GET /api/v1/horario`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
+La API tiene 24 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}`, `GET /api/v1/bloques`, `GET /api/v1/reservas/disponibilidad` y `GET /api/v1/horario`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
 
 ### Registro de cambios del contrato
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
+| 10 | 2026-11-21 | Usuario suma los campos opcionales `telefono` y `area` (texto), al final del objeto `usuario`, después de `fechaNacimiento`. Valen null hasta que el usuario los registra (los del dataset parten en null). El login y el refresh no cambian, salvo estos campos al final de `usuario` | El usuario completa su perfil y el coordinador puede contactar al relator |
+| 10 | 2026-11-21 | `PUT /usuarios/me` recibe `fechaNacimiento`, `telefono` y `area`, los tres opcionales: el que llega null o no viene conserva el valor guardado. `telefono` debe ser «+569» y 8 dígitos; `area` no vacía y de máximo 60 caracteres; `fechaNacimiento` con las reglas de la versión 8. Si algo falla → `400 DATOS_INVALIDOS` y no se guarda nada | Completar el perfil por partes, sin borrar lo ya registrado |
+| 10 | 2026-11-21 | Nuevo `PUT /usuarios/me/password` (ambos roles, con token): recibe `passwordActual` y `passwordNueva`. Si la actual no coincide → `400 CONTRASENA_INCORRECTA` (código nuevo); si la nueva tiene menos de 8 caracteres o es igual a la actual → `400 DATOS_INVALIDOS`. Si sale bien guarda el hash BCrypt y responde `204` sin cuerpo | El usuario cambia su contraseña desde la app |
+| 10 | 2026-11-21 | Nuevo `GET /usuarios/{id}` (solo coordinador): `200` con el usuario, `403 SIN_PERMISO` si lo pide un relator, `404 USUARIO_NO_ENCONTRADO` (código nuevo) si no existe | La app muestra el teléfono del relator en «Supervisar reserva» |
 | 9 | 2026-11-21 | `PUT /salas/{id}` acepta el campo opcional `usaHorarioGeneral` (booleano, solo en la petición, al final). Si es `true`, `horaApertura` y `horaCierre` quedan en null aunque lleguen con valor. Si es `false` o no viene, sigue la regla de la versión 5 (una hora null conserva la guardada). No cambia `POST /salas`, la respuesta de sala ni ningún campo, ruta o validación anterior | Con la regla de la versión 5 no había forma de devolver una sala al horario general |
 | 8 | 2026-11-20 | Usuario suma el campo opcional `fechaNacimiento` (texto «AAAA-MM-DD»), al final del objeto `usuario`. Vale null hasta que el usuario la registra (los usuarios del dataset parten en null). El login y el refresh no cambian, salvo este campo al final de `usuario` | El usuario registra su fecha de nacimiento |
 | 8 | 2026-11-20 | Nuevos `GET /usuarios/me` y `PUT /usuarios/me` (ambos roles, con token). El usuario sale del token (`sub`), nunca de la ruta. PUT recibe solo `fechaNacimiento`; si llegan nombre, email, rol u otros campos, se ignoran. Si falta, tiene otro formato, es futura o el usuario tendría menos de 18 años → `400 DATOS_INVALIDOS` | Cada usuario ve y completa sus propios datos, sin poder cambiar su identidad ni su rol |
@@ -551,9 +557,15 @@ La columna «Quién» indica qué rol puede usar el endpoint. Si otro rol lo int
 | POST   | /api/v1/auth/login   | Público               | email, password                | 200 con token y usuario (sin password) · 401 |
 | POST   | /api/v1/auth/refresh | Ambos                 | Nada (solo el token vigente)   | 200 con token nuevo y usuario · 401          |
 | GET    | /api/v1/usuarios/me  | Ambos                 | Nada (el usuario sale del token) | 200 con el usuario (sin password) · 401    |
-| PUT    | /api/v1/usuarios/me  | Ambos                 | fechaNacimiento                | 200 con el usuario actualizado · 400 · 401   |
+| PUT    | /api/v1/usuarios/me  | Ambos                 | fechaNacimiento, telefono, area (opcionales) | 200 con el usuario actualizado · 400 · 401   |
+| PUT    | /api/v1/usuarios/me/password | Ambos         | passwordActual, passwordNueva  | 204 sin cuerpo · 400 · 401                   |
+| GET    | /api/v1/usuarios/{id} | Coordinador          | Nada                           | 200 con el usuario (sin password) · 401 · 403 · 404 |
 
-**Mis datos (versión 8).** `PUT /usuarios/me` revisa en este orden: `fechaNacimiento` viene y tiene formato «AAAA-MM-DD»; no es posterior a hoy (hora de Chile); y el usuario tiene al menos 18 años (cumplirlos hoy sí vale). Si algo falla → 400 DATOS_INVALIDOS. Solo se guarda `fechaNacimiento`: nombre, email y rol no se pueden modificar y, si vienen en el cuerpo, se ignoran. Ejemplo de cuerpo: `{ "fechaNacimiento": "1990-05-20" }`.
+**Mis datos (versión 10).** En `PUT /usuarios/me` los tres campos son opcionales: el que llega null o no viene conserva el valor guardado. Para cada campo que sí viene se revisa: `fechaNacimiento` tiene formato «AAAA-MM-DD», no es posterior a hoy (hora de Chile) y el usuario tiene al menos 18 años (cumplirlos hoy sí vale); `telefono` es un celular chileno «+569» seguido de 8 dígitos; `area` no está vacía (ni solo con espacios) y tiene máximo 60 caracteres. Si algo falla → 400 DATOS_INVALIDOS y no se guarda ningún campo. Nombre, email y rol no se pueden modificar y, si vienen en el cuerpo, se ignoran. Ejemplo de cuerpo: `{ "telefono": "+56912345678", "area": "Informática" }`.
+
+**Cambiar contraseña (versión 10).** `PUT /usuarios/me/password` revisa en este orden: ambos campos vienen y no están vacíos (si no → 400 DATOS_INVALIDOS); `passwordActual` coincide con la guardada (si no → 400 CONTRASENA_INCORRECTA); `passwordNueva` tiene al menos 8 caracteres y es distinta de la actual (si no → 400 DATOS_INVALIDOS). Si todo está bien guarda la nueva como hash BCrypt y responde 204 sin cuerpo. El token sigue vigente.
+
+**Usuario por id (versión 10).** `GET /usuarios/{id}` revisa primero el rol (relator → 403 SIN_PERMISO) y después que el usuario exista (si no → 404 USUARIO_NO_ENCONTRADO). Un id que no es número → 400 DATOS_INVALIDOS.
 
 **ms-salas**
 
@@ -653,11 +665,13 @@ Toda respuesta de error (400, 401, 403, 404, 409 y 500) tiene esta misma forma:
 | BLOQUE_INVALIDO        | 400  | Bloques fuera de 1 a 13 o fin menor que inicio    |
 | FECHA_PASADA           | 400  | Se intenta reservar un día anterior a hoy         |
 | SALA_INACTIVA          | 400  | La sala está fuera de servicio                    |
+| CONTRASENA_INCORRECTA  | 400  | Al cambiar la contraseña, la actual no coincide   |
 | CREDENCIALES_INVALIDAS | 401  | Email o contraseña incorrectos                    |
 | TOKEN_INVALIDO         | 401  | Falta el token, está alterado o venció            |
 | SIN_PERMISO            | 403  | El rol no permite la acción                       |
 | SALA_NO_ENCONTRADA     | 404  | No existe la sala pedida                          |
 | RESERVA_NO_ENCONTRADA  | 404  | No existe la reserva pedida                       |
+| USUARIO_NO_ENCONTRADO  | 404  | No existe el usuario pedido                       |
 | CRUCE_HORARIO          | 409  | La sala ya está ocupada en alguno de esos bloques |
 | USUARIO_OCUPADO        | 409  | El usuario ya tiene otra reserva en alguno de esos bloques, en cualquier sala |
 | RESERVA_NO_ACTIVA      | 409  | Check-in, verificar o no presentado sobre una reserva CANCELADA |
@@ -683,7 +697,9 @@ Respuesta 200:
 "nombre": "Relator Ficticio Uno",  
 "email": "relator1@duocuc.test",  
 "rol": "RELATOR",  
-"fechaNacimiento": null  
+"fechaNacimiento": null,  
+"telefono": null,  
+"area": null  
 }  
 }
 

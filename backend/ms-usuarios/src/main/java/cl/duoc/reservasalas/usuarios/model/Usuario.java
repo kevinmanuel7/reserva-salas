@@ -41,6 +41,14 @@ public class Usuario {
     @Column
     private LocalDate fechaNacimiento;
 
+    // Opcionales (Contrato 1 v10): null hasta que el usuario los registre con PUT /usuarios/me.
+    // Celular chileno: "+569" y 8 dígitos = 12 caracteres.
+    @Column(length = 12)
+    private String telefono;
+
+    @Column(length = 60)
+    private String area;
+
     // JPA necesita un constructor vacío para crear objetos al leer de la base de datos.
     public Usuario() {
     }
@@ -98,5 +106,21 @@ public class Usuario {
 
     public void setFechaNacimiento(LocalDate fechaNacimiento) {
         this.fechaNacimiento = fechaNacimiento;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
     }
 }

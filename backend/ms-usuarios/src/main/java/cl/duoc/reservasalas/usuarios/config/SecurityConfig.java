@@ -12,6 +12,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -28,7 +30,8 @@ import tools.jackson.databind.ObjectMapper;
  * Reglas de seguridad del servicio:
  * - Sin sesiones: cada petición se identifica solo con su token.
  * - POST /auth/login es la única ruta pública; todo lo demás (refresh,
- *   /usuarios/me) exige el encabezado Authorization: Bearer <token>.
+ *   /usuarios/me, /usuarios/me/password) exige el encabezado Authorization: Bearer <token>.
+ * - GET /usuarios/{id} además exige el rol COORDINADOR (si no → 403 SIN_PERMISO).
  * Al definir esta configuración, Spring deja de crear el usuario "user" con la
  * contraseña generada que mostraba en consola.
  */
@@ -54,16 +57,35 @@ public class SecurityConfig {
                 .authorizeHttpRequests(rutas -> rutas
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // El orden importa: Spring usa la primera regla que calza, y
+                        // "/usuarios/*" también calza con "/usuarios/me".
+                        .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/*").hasRole("COORDINADOR")
                         .anyRequest().authenticated())
                 // Valida el token con el JwtDecoder de JwtConfig.
                 .oauth2ResourceServer(recurso -> recurso
-                        .jwt(Customizer.withDefaults())
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                         .authenticationEntryPoint(tokenInvalido())
                         .accessDeniedHandler(sinPermiso()))
                 .exceptionHandling(errores -> errores
                         .authenticationEntryPoint(tokenInvalido())
                         .accessDeniedHandler(sinPermiso()));
         return http.build();
+    }
+
+    /**
+     * Convierte el claim "rol" del token en una autoridad "ROLE_<ROL>" de Spring Security.
+     * Así hasRole("COORDINADOR") evalúa si el usuario es COORDINADOR (igual que en ms-salas).
+     */
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        authoritiesConverter.setAuthoritiesClaimName("rol");
+        authoritiesConverter.setAuthorityPrefix("ROLE_");
+
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+        return converter;
     }
 
     // Reglas de CORS: qué orígenes (la web), métodos y encabezados se aceptan.
