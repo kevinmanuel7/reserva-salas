@@ -8,7 +8,32 @@
     "tieneProyector": true,
     "tieneComputadores": true,
     "tieneClimatizacion": true,
-    "activa": true
+    "activa": true,
+    "ubicacion": "Edificio A, piso 2",
+    "horaApertura": null,
+    "horaCierre": null,
+    "equipos": [
+      {
+        "nombre": "Proyector",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Computadores",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Climatización",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Pizarra",
+        "estado": "OPERATIVO",
+        "comentario": null
+      }
+    ]
   },
   {
     "id": 2,
@@ -19,7 +44,27 @@
     "tieneProyector": true,
     "tieneComputadores": true,
     "tieneClimatizacion": false,
-    "activa": true
+    "activa": true,
+    "ubicacion": "Edificio A, piso 2",
+    "horaApertura": null,
+    "horaCierre": null,
+    "equipos": [
+      {
+        "nombre": "Proyector",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Computadores",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Pizarra",
+        "estado": "OPERATIVO",
+        "comentario": null
+      }
+    ]
   },
   {
     "id": 3,
@@ -30,7 +75,27 @@
     "tieneProyector": true,
     "tieneComputadores": false,
     "tieneClimatizacion": true,
-    "activa": true
+    "activa": true,
+    "ubicacion": "Edificio B, piso 1",
+    "horaApertura": null,
+    "horaCierre": null,
+    "equipos": [
+      {
+        "nombre": "Proyector",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Climatización",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Pizarra",
+        "estado": "OPERATIVO",
+        "comentario": null
+      }
+    ]
   },
   {
     "id": 4,
@@ -41,7 +106,22 @@
     "tieneProyector": true,
     "tieneComputadores": false,
     "tieneClimatizacion": false,
-    "activa": true
+    "activa": true,
+    "ubicacion": "Edificio B, piso 1",
+    "horaApertura": null,
+    "horaCierre": null,
+    "equipos": [
+      {
+        "nombre": "Proyector",
+        "estado": "CON_FALLA",
+        "comentario": "La imagen parpadea"
+      },
+      {
+        "nombre": "Pizarra",
+        "estado": "OPERATIVO",
+        "comentario": null
+      }
+    ]
   },
   {
     "id": 5,
@@ -52,7 +132,27 @@
     "tieneProyector": true,
     "tieneComputadores": false,
     "tieneClimatizacion": true,
-    "activa": true
+    "activa": true,
+    "ubicacion": "Edificio B, piso 2",
+    "horaApertura": null,
+    "horaCierre": null,
+    "equipos": [
+      {
+        "nombre": "Proyector",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Climatización",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Pizarra",
+        "estado": "OPERATIVO",
+        "comentario": null
+      }
+    ]
   },
   {
     "id": 6,
@@ -63,7 +163,17 @@
     "tieneProyector": false,
     "tieneComputadores": false,
     "tieneClimatizacion": false,
-    "activa": true
+    "activa": true,
+    "ubicacion": "Edificio B, piso 2",
+    "horaApertura": null,
+    "horaCierre": null,
+    "equipos": [
+      {
+        "nombre": "Pizarra",
+        "estado": "OPERATIVO",
+        "comentario": null
+      }
+    ]
   },
   {
     "id": 7,
@@ -74,7 +184,27 @@
     "tieneProyector": true,
     "tieneComputadores": false,
     "tieneClimatizacion": true,
-    "activa": true
+    "activa": true,
+    "ubicacion": "Edificio C, piso 1",
+    "horaApertura": null,
+    "horaCierre": null,
+    "equipos": [
+      {
+        "nombre": "Proyector",
+        "estado": "CON_FALLA",
+        "comentario": "El proyector del teatro tiene fallas"
+      },
+      {
+        "nombre": "Climatización",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Parlantes",
+        "estado": "OPERATIVO",
+        "comentario": null
+      }
+    ]
   },
   {
     "id": 8,
@@ -85,7 +215,22 @@
     "tieneProyector": true,
     "tieneComputadores": false,
     "tieneClimatizacion": false,
-    "activa": true
+    "activa": true,
+    "ubicacion": "Edificio C, piso 2",
+    "horaApertura": null,
+    "horaCierre": null,
+    "equipos": [
+      {
+        "nombre": "Proyector",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Pizarra",
+        "estado": "OPERATIVO",
+        "comentario": null
+      }
+    ]
   },
   {
     "id": 9,
@@ -96,6 +241,21 @@
     "tieneProyector": true,
     "tieneComputadores": false,
     "tieneClimatizacion": false,
-    "activa": false
+    "activa": false,
+    "ubicacion": "Edificio B, piso 3",
+    "horaApertura": null,
+    "horaCierre": null,
+    "equipos": [
+      {
+        "nombre": "Proyector",
+        "estado": "OPERATIVO",
+        "comentario": null
+      },
+      {
+        "nombre": "Pizarra",
+        "estado": "OPERATIVO",
+        "comentario": null
+      }
+    ]
   }
 ]

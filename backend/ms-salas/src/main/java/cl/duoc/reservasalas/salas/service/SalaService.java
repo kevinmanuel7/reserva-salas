@@ -7,9 +7,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import cl.duoc.reservasalas.salas.dto.ActualizarSalaRequest;
 import cl.duoc.reservasalas.salas.dto.CrearSalaRequest;
+import cl.duoc.reservasalas.salas.dto.EquipoDto;
 import cl.duoc.reservasalas.salas.dto.SalaDto;
 import cl.duoc.reservasalas.salas.exception.CodigoSalaDuplicadoException;
 import cl.duoc.reservasalas.salas.exception.SalaNoEncontradaException;
+import cl.duoc.reservasalas.salas.model.Equipo;
 import cl.duoc.reservasalas.salas.model.Sala;
 import cl.duoc.reservasalas.salas.repository.SalaRepository;
 
@@ -54,6 +56,12 @@ public class SalaService {
                 request.tieneClimatizacion(),
                 request.activa() != null ? request.activa() : true
         );
+        sala.setUbicacion(request.ubicacion());
+        sala.setHoraApertura(request.horaApertura());
+        sala.setHoraCierre(request.horaCierre());
+        if (request.equipos() != null) {
+            reemplazarEquipos(sala, request.equipos());
+        }
 
         return SalaDto.desde(salaRepository.save(sala));
     }
@@ -76,7 +84,35 @@ public class SalaService {
         sala.setTieneClimatizacion(request.tieneClimatizacion());
         sala.setActiva(request.activa());
 
+        // Campos de la versión 5: si llegan null se conservan los guardados, para que
+        // la web (que no los envía) no borre lo que guardó la app.
+        if (request.ubicacion() != null) {
+            sala.setUbicacion(request.ubicacion());
+        }
+        if (request.horaApertura() != null) {
+            sala.setHoraApertura(request.horaApertura());
+        }
+        if (request.horaCierre() != null) {
+            sala.setHoraCierre(request.horaCierre());
+        }
+        if (request.equipos() != null) {
+            reemplazarEquipos(sala, request.equipos());
+        }
+
         return SalaDto.desde(salaRepository.save(sala));
+    }
+
+    /**
+     * Cambia la lista de equipos de la sala y recalcula los tres booleanos a partir
+     * de ella. Una lista vacía deja los tres en false.
+     */
+    private void reemplazarEquipos(Sala sala, List<EquipoDto> equipos) {
+        List<Equipo> nuevos = equipos.stream().map(EquipoDto::aEquipo).toList();
+        sala.getEquipos().clear();
+        sala.getEquipos().addAll(nuevos);
+        sala.setTieneProyector(CalculadoraEquipamiento.tieneProyector(nuevos));
+        sala.setTieneComputadores(CalculadoraEquipamiento.tieneComputadores(nuevos));
+        sala.setTieneClimatizacion(CalculadoraEquipamiento.tieneClimatizacion(nuevos));
     }
 
     @Transactional

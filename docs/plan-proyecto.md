@@ -323,6 +323,22 @@ El sistema maneja cuatro entidades (Sala, Usuario, Bloque y Reserva) con los mis
 | tieneComputadores  | Verdadero/falso | true                        | Filtro de equipamiento                                                          |
 | tieneClimatizacion | Verdadero/falso | false                       | Filtro de equipamiento                                                          |
 | activa             | Verdadero/falso | true                        | false = fuera de servicio. No aparece para reservar, pero conserva su historial |
+| ubicacion          | Texto, opcional | "Edificio A, piso 2"        | Dónde está la sala (Contrato 1 v5)                                              |
+| horaApertura       | Hora, opcional  | "09:05"                     | Horario propio de la sala. null = usa el horario general de bloques (v5)        |
+| horaCierre         | Hora, opcional  | "18:00"                     | Horario propio de la sala. null = usa el horario general de bloques (v5)        |
+| equipos            | Lista de Equipo | (ver abajo)                 | Equipamiento de la sala, con su estado y comentarios (v5)                       |
+
+**Equipo** (cada elemento de `equipos`; en MySQL se guarda en la tabla `sala_equipo`, unida a la sala por `salaId`):
+
+| Campo      | Tipo            | Ejemplo                                 | Para qué sirve                              |
+|------------|-----------------|-----------------------------------------|---------------------------------------------|
+| nombre     | Texto           | "Proyector"                             | Nombre del equipo. No puede ir vacío        |
+| estado     | Lista cerrada   | "CON_FALLA"                             | Solo OPERATIVO o CON_FALLA                  |
+| comentario | Texto, opcional | "El proyector del teatro tiene fallas"  | Nota del coordinador sobre el equipo        |
+
+Nombres de equipo que usa la app (catálogo `CATALOGO_EQUIPOS`): "Proyector", "Computadores", "Climatización", "Pizarra" y "Parlantes".
+
+**Cálculo de los filtros de equipamiento.** Si al crear o editar una sala llega la lista `equipos`, el servidor calcula `tieneProyector`, `tieneComputadores` y `tieneClimatizacion` a partir de ella e ignora los valores enviados. Compara el nombre sin mayúsculas ni tildes: si contiene «proyector» → `tieneProyector`; «computador» → `tieneComputadores`; «climatiz» o «aire acondicionado» → `tieneClimatizacion`. Un equipo CON_FALLA cuenta igual (la sala lo tiene; la falla queda en el comentario). Una lista vacía deja los tres en false.
 
 ### Usuario
 
@@ -429,6 +445,9 @@ La API tiene 15 endpoints repartidos en 3 microservicios. Todos responden JSON y
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
+| 5 | 2026-11-20 | Sala suma cuatro campos opcionales: `ubicacion`, `horaApertura`, `horaCierre` (texto «HH:MM»; null = horario general) y `equipos` (lista de `{nombre, estado, comentario}`, con estado OPERATIVO o CON_FALLA). Aparecen en todas las respuestas de sala y se pueden enviar en `POST /salas` y `PUT /salas/{id}`. No cambia ni se quita ningún campo, ruta ni validación anterior | El coordinador registra dónde está cada sala, su horario propio y su equipamiento con comentarios (requisito del mandante, sección 1) |
+| 5 | 2026-11-20 | Si llega `equipos`, el servidor calcula `tieneProyector`, `tieneComputadores` y `tieneClimatizacion` desde la lista (regla en la sección 4). Los tres siguen siendo obligatorios en la petición | Que los filtros de `GET /salas` no contradigan el equipamiento registrado |
+| 5 | 2026-11-20 | En `PUT /salas/{id}`, si `ubicacion`, `horaApertura`, `horaCierre` o `equipos` llegan null o no vienen, se conservan los valores guardados. `equipos: []` sí vacía la lista | La web no envía esos campos: así no borra lo que guardó la app |
 | 4 | 2026-11-16 | Las reservas del dataset pasan al 16–27 de noviembre (14 días después, mismos días de la semana) | Que la agenda muestre reservas en la demo y que los casos de Postman usen fechas futuras |
 | 4 | 2026-11-13 | Nueva regla de cruce del usuario (sección 4) y nuevo error `409 USUARIO_OCUPADO` en `POST /reservas` y `POST /reservas/lote` | Una persona no puede estar en dos salas a la vez. Sin esta regla, una sala queda bloqueada sin uso y otro relator no la puede pedir (detectado al revisar la maqueta) |
 | 4 | 2026-11-13 | Casos de prueba 21 a 23 pasan del Relator 2 al Relator 1; los casos de `DELETE /salas/6`, que repetían los números 24 y 25, pasan a 26 y 27; nuevos casos 28 a 31 | Con la regla nueva, el Relator 2 ya tiene la reserva 7 en esos bloques y los casos 21 a 23 darían otro resultado |
@@ -517,6 +536,8 @@ La columna «Quién» indica qué rol puede usar el endpoint. Si otro rol lo int
 | POST   | /api/v1/salas                        | Coordinador | Todos los campos de Sala menos id                                                     | 201 con la sala creada · 400 · 403                                      |
 | PUT    | /api/v1/salas/{id}                   | Coordinador | Todos los campos de Sala menos id, incluido activa                                    | 200 · 400 · 403 · 404                                                   |
 | DELETE | /api/v1/salas/{id}                   | Coordinador | Nada                                                                                  | 200 con la sala en `activa: false` · 403 · 404                          |
+
+Desde la versión 5, POST y PUT también aceptan los campos opcionales `ubicacion`, `horaApertura`, `horaCierre` y `equipos`. En PUT, los que llegan null (o no vienen) conservan su valor guardado. Si llega `equipos`, los tres booleanos de equipamiento se calculan desde la lista (sección 4).
 
 DELETE /salas/{id} **no borra la fila**: la marca como inactiva (regla «Retirar una sala» de la sección 1). La sala deja de aparecer para reservar, pero sus reservas pasadas siguen apuntando a ella. Para reactivarla se usa PUT con `activa: true`.
 
@@ -806,6 +827,22 @@ Como el docente no entregó datos, usamos este dataset propio: 9 salas, 7 usuari
 | 9   | SC-301 | Sala 301                  | SALA_CLASES    | 30        | sí        | no           | no            | **no** |
 
 La sala 9 está inactiva a propósito, para probar el filtro incluirInactivas y el error SALA_INACTIVA.
+
+Ubicación y equipos (Contrato 1 v5; catálogo provisional). Ninguna sala tiene horario propio en el dataset (`horaApertura` y `horaCierre` en null). Los booleanos de la tabla anterior coinciden con estas listas, y una prueba de ms-salas lo verifica.
+
+| codigo | ubicacion          | equipos                                                                  |
+|--------|--------------------|--------------------------------------------------------------------------|
+| LAB-01 | Edificio A, piso 2 | Proyector, Computadores, Climatización, Pizarra                          |
+| LAB-02 | Edificio A, piso 2 | Proyector, Computadores, Pizarra                                         |
+| SC-101 | Edificio B, piso 1 | Proyector, Climatización, Pizarra                                        |
+| SC-102 | Edificio B, piso 1 | Proyector (CON_FALLA: «La imagen parpadea»), Pizarra                     |
+| SC-201 | Edificio B, piso 2 | Proyector, Climatización, Pizarra                                        |
+| SC-202 | Edificio B, piso 2 | Pizarra                                                                  |
+| MP-01  | Edificio C, piso 1 | Proyector (CON_FALLA: «El proyector del teatro tiene fallas»), Climatización, Parlantes |
+| MP-02  | Edificio C, piso 2 | Proyector, Pizarra                                                       |
+| SC-301 | Edificio B, piso 3 | Proyector, Pizarra                                                       |
+
+Los equipos sin indicación están OPERATIVO y sin comentario.
 
 ### Usuarios
 

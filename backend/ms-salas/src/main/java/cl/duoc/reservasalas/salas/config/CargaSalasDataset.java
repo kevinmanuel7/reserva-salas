@@ -2,6 +2,7 @@ package cl.duoc.reservasalas.salas.config;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalTime;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import cl.duoc.reservasalas.salas.model.EstadoEquipo;
 import cl.duoc.reservasalas.salas.model.TipoSala;
 import cl.duoc.reservasalas.salas.repository.SalaRepository;
 import tools.jackson.core.type.TypeReference;
@@ -37,8 +39,15 @@ public class CargaSalasDataset implements ApplicationRunner {
             Boolean tieneProyector,
             Boolean tieneComputadores,
             Boolean tieneClimatizacion,
-            Boolean activa
+            Boolean activa,
+            String ubicacion,
+            String horaApertura,
+            String horaCierre,
+            List<EquipoDataset> equipos
     ) {
+    }
+
+    record EquipoDataset(String nombre, EstadoEquipo estado, String comentario) {
     }
 
     private final SalaRepository salaRepository;
@@ -72,9 +81,22 @@ public class CargaSalasDataset implements ApplicationRunner {
                     s.tieneProyector(),
                     s.tieneComputadores(),
                     s.tieneClimatizacion(),
-                    s.activa()
+                    s.activa(),
+                    s.ubicacion(),
+                    aHora(s.horaApertura()),
+                    aHora(s.horaCierre())
             );
+            if (s.equipos() != null) {
+                for (EquipoDataset e : s.equipos()) {
+                    salaRepository.insertarEquipo(s.id(), e.nombre(), e.estado().name(), e.comentario());
+                }
+            }
         }
         log.info("Dataset cargado: {} salas desde {}.", salas.size(), RUTA_DATASET);
+    }
+
+    // "08:00" -> LocalTime. null significa que la sala usa el horario general.
+    private static LocalTime aHora(String texto) {
+        return texto != null ? LocalTime.parse(texto) : null;
     }
 }

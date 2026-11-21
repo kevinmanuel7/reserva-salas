@@ -1,6 +1,12 @@
 package cl.duoc.reservasalas.salas.dto;
 
+import java.time.LocalTime;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import cl.duoc.reservasalas.salas.model.TipoSala;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +34,17 @@ public record CrearSalaRequest(
         @NotNull(message = "Debe indicar si tiene climatización")
         Boolean tieneClimatizacion,
 
-        Boolean activa
+        Boolean activa,
+
+        // Campos opcionales de la versión 5 del Contrato 1.
+        String ubicacion,
+
+        @JsonFormat(pattern = "HH:mm")
+        LocalTime horaApertura,
+
+        @JsonFormat(pattern = "HH:mm")
+        LocalTime horaCierre,
+
+        List<@Valid EquipoDto> equipos
 ) {
 }

@@ -1,5 +1,6 @@
 package cl.duoc.reservasalas.salas.repository;
 
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,8 +34,10 @@ public interface SalaRepository extends JpaRepository<Sala, Long> {
     );
 
     @Modifying
-    @Query(value = "INSERT INTO sala (id, codigo, nombre, tipo, capacidad, tieneProyector, tieneComputadores, tieneClimatizacion, activa) "
-            + "VALUES (:id, :codigo, :nombre, :tipo, :capacidad, :tieneProyector, :tieneComputadores, :tieneClimatizacion, :activa)", nativeQuery = true)
+    @Query(value = "INSERT INTO sala (id, codigo, nombre, tipo, capacidad, tieneProyector, tieneComputadores, tieneClimatizacion, activa, "
+            + "ubicacion, horaApertura, horaCierre) "
+            + "VALUES (:id, :codigo, :nombre, :tipo, :capacidad, :tieneProyector, :tieneComputadores, :tieneClimatizacion, :activa, "
+            + ":ubicacion, :horaApertura, :horaCierre)", nativeQuery = true)
     void insertarConId(@Param("id") Long id,
                        @Param("codigo") String codigo,
                        @Param("nombre") String nombre,
@@ -43,5 +46,16 @@ public interface SalaRepository extends JpaRepository<Sala, Long> {
                        @Param("tieneProyector") Boolean tieneProyector,
                        @Param("tieneComputadores") Boolean tieneComputadores,
                        @Param("tieneClimatizacion") Boolean tieneClimatizacion,
-                       @Param("activa") Boolean activa);
+                       @Param("activa") Boolean activa,
+                       @Param("ubicacion") String ubicacion,
+                       @Param("horaApertura") LocalTime horaApertura,
+                       @Param("horaCierre") LocalTime horaCierre);
+
+    @Modifying
+    @Query(value = "INSERT INTO sala_equipo (salaId, nombre, estado, comentario) "
+            + "VALUES (:salaId, :nombre, :estado, :comentario)", nativeQuery = true)
+    void insertarEquipo(@Param("salaId") Long salaId,
+                        @Param("nombre") String nombre,
+                        @Param("estado") String estado,
+                        @Param("comentario") String comentario);
 }
