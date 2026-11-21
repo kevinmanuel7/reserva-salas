@@ -1,6 +1,9 @@
 package cl.duoc.reservasalas.reservas.service;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +18,7 @@ import cl.duoc.reservasalas.reservas.exception.BloqueInvalidoException;
 import cl.duoc.reservasalas.reservas.exception.CruceHorarioException;
 import cl.duoc.reservasalas.reservas.exception.DatosInvalidosException;
 import cl.duoc.reservasalas.reservas.exception.FechaPasadaException;
+import cl.duoc.reservasalas.reservas.exception.ReservaNoActivaException;
 import cl.duoc.reservasalas.reservas.exception.ReservaNoEncontradaException;
 import cl.duoc.reservasalas.reservas.exception.SalaInactivaException;
 import cl.duoc.reservasalas.reservas.exception.SalaNoEncontradaException;
@@ -26,6 +30,9 @@ import cl.duoc.reservasalas.reservas.repository.ReservaRepository;
 
 @Service
 public class ReservaService {
+
+    // Hora de Chile para el check-in, aunque el servidor esté configurado en otra zona (por ejemplo, UTC).
+    private static final ZoneId ZONA_CHILE = ZoneId.of("America/Santiago");
 
     private final ReservaRepository reservaRepository;
     private final SalaClient salaClient;
@@ -144,6 +151,63 @@ public class ReservaService {
 
         reserva.setEstado(EstadoReserva.CANCELADA);
         return ReservaDto.desde(reservaRepository.save(reserva));
+    }
+
+    // Check-in, verificación y no presentado (Contrato 1, versión 6). Ninguno cambia el
+    // estado: la reserva sigue ACTIVA para que la sala no se libere.
+    // Orden de validación en los tres: 404 → 403 → 409.
+
+    @Transactional
+    public ReservaDto hacerCheckIn(Long id, Long usuarioId) {
+        Reserva reserva = buscarReserva(id);
+
+        if (!reserva.getUsuarioId().equals(usuarioId)) {
+            throw new SinPermisoException("Solo el dueño de la reserva puede hacer check-in");
+        }
+        exigirActiva(reserva);
+
+        // Si ya hizo check-in, se conserva la primera hora.
+        if (reserva.getHoraCheckIn() == null) {
+            reserva.setHoraCheckIn(LocalTime.now(ZONA_CHILE).truncatedTo(ChronoUnit.MINUTES));
+        }
+        return ReservaDto.desde(reservaRepository.save(reserva));
+    }
+
+    @Transactional
+    public ReservaDto verificarReserva(Long id, boolean esCoordinador) {
+        Reserva reserva = buscarReserva(id);
+
+        if (!esCoordinador) {
+            throw new SinPermisoException("Solo el coordinador puede verificar una reserva");
+        }
+        exigirActiva(reserva);
+
+        reserva.setVerificada(true);
+        return ReservaDto.desde(reservaRepository.save(reserva));
+    }
+
+    @Transactional
+    public ReservaDto marcarNoPresentado(Long id, boolean esCoordinador) {
+        Reserva reserva = buscarReserva(id);
+
+        if (!esCoordinador) {
+            throw new SinPermisoException("Solo el coordinador puede marcar una reserva como no presentado");
+        }
+        exigirActiva(reserva);
+
+        reserva.setNoPresentado(true);
+        return ReservaDto.desde(reservaRepository.save(reserva));
+    }
+
+    private Reserva buscarReserva(Long id) {
+        return reservaRepository.findById(id)
+                .orElseThrow(() -> new ReservaNoEncontradaException("No existe la reserva con id " + id));
+    }
+
+    private void exigirActiva(Reserva reserva) {
+        if (reserva.getEstado() != EstadoReserva.ACTIVA) {
+            throw new ReservaNoActivaException("La reserva " + reserva.getId() + " está cancelada");
+        }
     }
 
     // "Reserva 2 de 3: " para los mensajes de error del lote.

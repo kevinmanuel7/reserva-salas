@@ -63,9 +63,15 @@ crear clases, tablas o endpoints.
 
 ## 5. Reglas de negocio (decididas con el mandante — no cambiarlas sin aviso)
 
-La edición de horarios y equipamiento, los comentarios de equipamiento, el check-in
-con QR y el estado no presentado todavía no tienen su diseño detallado (campos,
-endpoints y pantallas) en `docs/plan-proyecto.md`. Antes de implementarlos, preguntar.
+Diseño en `docs/plan-proyecto.md` (secciones 4 y 5):
+- Ubicación, horario propio y equipamiento de cada sala, con estado y comentarios:
+  Contrato 1 versión 5.
+- Backend del check-in, de la verificación del coordinador y del no presentado
+  (campos y endpoints): Contrato 1 versión 6. La reserva sigue ACTIVA.
+
+Todavía no tienen diseño detallado: el escaneo del QR, el aviso al coordinador, la
+edición del horario general de bloques y las pantallas de estas funciones. Antes de
+implementarlos, preguntar.
 
 ### Perfiles
 - Solo existen dos perfiles: **relator** y **coordinador**.

@@ -91,9 +91,38 @@ public class ReservaController {
             @AuthenticationPrincipal Jwt jwt,
             Authentication authentication) {
         Long usuarioId = Long.parseLong(jwt.getSubject());
-        boolean esCoordinador = authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_COORDINADOR".equals(a.getAuthority()));
-        ReservaDto cancelada = reservaService.cancelarReserva(id, usuarioId, esCoordinador);
+        ReservaDto cancelada = reservaService.cancelarReserva(id, usuarioId, esCoordinador(authentication));
         return ResponseEntity.ok(cancelada);
+    }
+
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/{id}/checkin")
+    public ResponseEntity<ReservaDto> hacerCheckIn(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long usuarioId = Long.parseLong(jwt.getSubject());
+        return ResponseEntity.ok(reservaService.hacerCheckIn(id, usuarioId));
+    }
+
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/{id}/verificar")
+    public ResponseEntity<ReservaDto> verificarReserva(
+            @PathVariable Long id,
+            Authentication authentication) {
+        return ResponseEntity.ok(reservaService.verificarReserva(id, esCoordinador(authentication)));
+    }
+
+    @SecurityRequirement(name = "bearerAuth")
+    @PutMapping("/{id}/no-presentado")
+    public ResponseEntity<ReservaDto> marcarNoPresentado(
+            @PathVariable Long id,
+            Authentication authentication) {
+        return ResponseEntity.ok(reservaService.marcarNoPresentado(id, esCoordinador(authentication)));
+    }
+
+    // true si el token trae rol COORDINADOR (SecurityConfig lo convierte en ROLE_COORDINADOR).
+    private boolean esCoordinador(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_COORDINADOR".equals(a.getAuthority()));
     }
 }

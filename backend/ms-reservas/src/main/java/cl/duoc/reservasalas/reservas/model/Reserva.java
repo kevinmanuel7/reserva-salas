@@ -1,6 +1,7 @@
 package cl.duoc.reservasalas.reservas.model;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,6 +47,14 @@ public class Reserva {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoReserva estado = EstadoReserva.ACTIVA;
+
+    // Campos de la versión 6 del Contrato 1. Son opcionales: null hasta que alguien
+    // los marque. La reserva sigue ACTIVA, para que la sala no se libere.
+    private LocalTime horaCheckIn;
+
+    private Boolean verificada;
+
+    private Boolean noPresentado;
 
     public Reserva() {
     }
@@ -132,5 +141,29 @@ public class Reserva {
 
     public void setEstado(EstadoReserva estado) {
         this.estado = estado;
+    }
+
+    public LocalTime getHoraCheckIn() {
+        return horaCheckIn;
+    }
+
+    public void setHoraCheckIn(LocalTime horaCheckIn) {
+        this.horaCheckIn = horaCheckIn;
+    }
+
+    public Boolean getVerificada() {
+        return verificada;
+    }
+
+    public void setVerificada(Boolean verificada) {
+        this.verificada = verificada;
+    }
+
+    public Boolean getNoPresentado() {
+        return noPresentado;
+    }
+
+    public void setNoPresentado(Boolean noPresentado) {
+        this.noPresentado = noPresentado;
     }
 }

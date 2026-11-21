@@ -391,6 +391,9 @@ El bloque 6 (almuerzo) también se puede reservar.
 | bloqueInicio  | Entero de 1 a 13 | 2                          | Primer bloque reservado                                                                                |
 | bloqueFin     | Entero de 1 a 13 | 4                          | Último bloque reservado. Igual o mayor que bloqueInicio                                                |
 | estado        | Lista cerrada    | "ACTIVA"                   | Solo ACTIVA o CANCELADA                                                                                |
+| horaCheckIn   | Hora, opcional   | "09:07"                    | Hora (de Chile) en que el dueño hizo check-in. null = sin check-in (Contrato 1 v6)                     |
+| verificada    | Verdadero/falso, opcional | true              | El coordinador verificó el uso real del espacio. null = sin verificar (v6)                             |
+| noPresentado  | Verdadero/falso, opcional | true              | El coordinador marcó que el relator no se presentó. La reserva sigue ACTIVA y la sala no se libera (v6) |
 
 Ejemplos: una reserva de un solo bloque tiene bloqueInicio y bloqueFin iguales. Un taller de 3 bloques desde las 09:05 tiene bloqueInicio: 2 y bloqueFin: 4 (09:05 a 12:00).
 
@@ -439,12 +442,16 @@ El backend es quien decide si hay cruce (de sala o del usuario), porque es el ú
 
 ## 5. Contrato 1: API REST (Backend ↔ Datos de la app)
 
-La API tiene 15 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}`, `GET /api/v1/bloques` y `GET /api/v1/reservas/disponibilidad`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
+La API tiene 18 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}`, `GET /api/v1/bloques` y `GET /api/v1/reservas/disponibilidad`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
 
 ### Registro de cambios del contrato
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
+| 6 | 2026-11-20 | Reserva suma tres campos opcionales al final: `horaCheckIn` (texto «HH:MM»), `verificada` y `noPresentado`. Valen null hasta que alguien los marca. No cambia ni se quita ningún campo, ruta ni validación anterior | Backend del check-in y del estado no presentado (requisitos del mandante, sección 1) |
+| 6 | 2026-11-20 | Nuevos `PUT /reservas/{id}/checkin` (solo el dueño), `PUT /reservas/{id}/verificar` y `PUT /reservas/{id}/no-presentado` (solo coordinador) | El relator confirma el uso del espacio y el coordinador lo verifica o marca la ausencia |
+| 6 | 2026-11-20 | Nuevo error `409 RESERVA_NO_ACTIVA` en esos tres endpoints, si la reserva está CANCELADA | Una reserva cancelada no tiene uso que confirmar |
+| 6 | 2026-11-20 | `estado` sigue siendo solo ACTIVA o CANCELADA: el no presentado es un campo aparte | La reserva sigue ACTIVA, así la validación de cruces la sigue viendo y la sala no se libera |
 | 5 | 2026-11-20 | Sala suma cuatro campos opcionales: `ubicacion`, `horaApertura`, `horaCierre` (texto «HH:MM»; null = horario general) y `equipos` (lista de `{nombre, estado, comentario}`, con estado OPERATIVO o CON_FALLA). Aparecen en todas las respuestas de sala y se pueden enviar en `POST /salas` y `PUT /salas/{id}`. No cambia ni se quita ningún campo, ruta ni validación anterior | El coordinador registra dónde está cada sala, su horario propio y su equipamiento con comentarios (requisito del mandante, sección 1) |
 | 5 | 2026-11-20 | Si llega `equipos`, el servidor calcula `tieneProyector`, `tieneComputadores` y `tieneClimatizacion` desde la lista (regla en la sección 4). Los tres siguen siendo obligatorios en la petición | Que los filtros de `GET /salas` no contradigan el equipamiento registrado |
 | 5 | 2026-11-20 | En `PUT /salas/{id}`, si `ubicacion`, `horaApertura`, `horaCierre` o `equipos` llegan null o no vienen, se conservan los valores guardados. `equipos: []` sí vacía la lista | La web no envía esos campos: así no borra lo que guardó la app |
@@ -552,6 +559,11 @@ DELETE /salas/{id} **no borra la fila**: la marca como inactiva (regla «Retirar
 | POST   | /api/v1/reservas                | Ambos                                   | salaId, fecha, bloqueInicio, bloqueFin, actividad | 201 con la reserva creada · 400 · 404 · 409         |
 | POST   | /api/v1/reservas/lote           | Ambos                                   | Lista de reservas, cada una con los campos de POST /reservas | 201 con la lista de reservas creadas · 400 · 404 · 409 |
 | PUT    | /api/v1/reservas/{id}/cancelar  | El dueño de la reserva o el coordinador | Nada                                              | 200 con la reserva en estado CANCELADA · 403 · 404  |
+| PUT    | /api/v1/reservas/{id}/checkin   | Solo el dueño de la reserva             | Nada                                              | 200 con la reserva y su horaCheckIn · 403 · 404 · 409 |
+| PUT    | /api/v1/reservas/{id}/verificar | Coordinador                             | Nada                                              | 200 con la reserva en `verificada: true` · 403 · 404 · 409 |
+| PUT    | /api/v1/reservas/{id}/no-presentado | Coordinador                         | Nada                                              | 200 con la reserva en `noPresentado: true` · 403 · 404 · 409 |
+
+**Check-in, verificar y no presentado (versión 6).** Los tres revisan en este orden: la reserva existe (si no, 404 RESERVA_NO_ENCONTRADA), quien llama tiene permiso (si no, 403 SIN_PERMISO) y la reserva no está CANCELADA (si lo está, 409 RESERVA_NO_ACTIVA). Ninguno cambia `estado`: la reserva sigue ACTIVA, la validación de cruces la sigue viendo y la sala no se libera. El check-in guarda la hora actual de Chile; si se repite, conserva la primera hora. El check-in lo hace solo el dueño, aunque quien llame sea coordinador. Verificar no exige check-in previo, y check-in y no presentado pueden coexistir: el coordinador decide. El escaneo del QR y el aviso al coordinador todavía no tienen diseño.
 
 GET /reservas/disponibilidad es la versión pública de GET /reservas: entrega solo lo necesario para pintar los bloques ocupados. Quién reservó y para qué sigue exigiendo token.
 
@@ -613,6 +625,7 @@ Toda respuesta de error (400, 401, 403, 404, 409 y 500) tiene esta misma forma:
 | RESERVA_NO_ENCONTRADA  | 404  | No existe la reserva pedida                       |
 | CRUCE_HORARIO          | 409  | La sala ya está ocupada en alguno de esos bloques |
 | USUARIO_OCUPADO        | 409  | El usuario ya tiene otra reserva en alguno de esos bloques, en cualquier sala |
+| RESERVA_NO_ACTIVA      | 409  | Check-in, verificar o no presentado sobre una reserva CANCELADA |
 | ERROR_INTERNO          | 500  | Error inesperado del servidor                     |
 
 Las rutas que no existen (404), los métodos no permitidos (405) y los formatos que no son JSON (415) conservan su código HTTP y responden con codigo: "DATOS_INVALIDOS".

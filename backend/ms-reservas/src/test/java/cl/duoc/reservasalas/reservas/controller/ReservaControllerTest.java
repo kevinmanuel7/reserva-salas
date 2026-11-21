@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +23,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -35,6 +38,8 @@ import cl.duoc.reservasalas.reservas.dto.CrearReservaRequest;
 import cl.duoc.reservasalas.reservas.dto.DisponibilidadDto;
 import cl.duoc.reservasalas.reservas.dto.ReservaDto;
 import cl.duoc.reservasalas.reservas.exception.ManejadorGlobalErrores;
+import cl.duoc.reservasalas.reservas.exception.ReservaNoActivaException;
+import cl.duoc.reservasalas.reservas.exception.SinPermisoException;
 import cl.duoc.reservasalas.reservas.model.EstadoReserva;
 import cl.duoc.reservasalas.reservas.service.ReservaService;
 
@@ -83,7 +88,7 @@ class ReservaControllerTest {
 
         reservaDto = new ReservaDto(
                 1L, 1L, 3L, "Relator Ficticio Uno", "Taller Excel",
-                LocalDate.of(2026, 11, 20), 2, 4, EstadoReserva.ACTIVA
+                LocalDate.of(2026, 11, 20), 2, 4, EstadoReserva.ACTIVA, null, null, null
         );
     }
 
@@ -170,12 +175,122 @@ class ReservaControllerTest {
     void cancelarReserva_devuelve200ConEstadoCancelada() throws Exception {
         ReservaDto cancelada = new ReservaDto(
                 1L, 1L, 3L, "Relator Ficticio Uno", "Taller Excel",
-                LocalDate.of(2026, 11, 20), 2, 4, EstadoReserva.CANCELADA
+                LocalDate.of(2026, 11, 20), 2, 4, EstadoReserva.CANCELADA, null, null, null
         );
         when(reservaService.cancelarReserva(eq(1L), eq(3L), eq(false))).thenReturn(cancelada);
 
         mockMvc.perform(put("/api/v1/reservas/1/cancelar"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("CANCELADA"));
+    }
+
+    // ----- Check-in, verificar y no presentado (Contrato 1, versión 6) -----
+
+    // Simula un token con rol COORDINADOR (lo que SecurityConfig arma a partir del claim rol).
+    private static UsernamePasswordAuthenticationToken coordinador() {
+        return new UsernamePasswordAuthenticationToken("1", null,
+                List.of(new SimpleGrantedAuthority("ROLE_COORDINADOR")));
+    }
+
+    @Test
+    void hacerCheckIn_devuelve200ConLaHoraEnFormatoHHmm() throws Exception {
+        ReservaDto conCheckIn = new ReservaDto(
+                1L, 1L, 3L, "Relator Ficticio Uno", "Taller Excel",
+                LocalDate.of(2026, 11, 20), 2, 4, EstadoReserva.ACTIVA, LocalTime.of(9, 7), null, null
+        );
+        when(reservaService.hacerCheckIn(1L, 3L)).thenReturn(conCheckIn);
+
+        mockMvc.perform(put("/api/v1/reservas/1/checkin"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.horaCheckIn").value("09:07"))
+                .andExpect(jsonPath("$.estado").value("ACTIVA"));
+    }
+
+    @Test
+    void hacerCheckIn_reservaAjena_devuelve403() throws Exception {
+        when(reservaService.hacerCheckIn(1L, 3L))
+                .thenThrow(new SinPermisoException("Solo el dueño de la reserva puede hacer check-in"));
+
+        mockMvc.perform(put("/api/v1/reservas/1/checkin"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("SIN_PERMISO"));
+    }
+
+    @Test
+    void hacerCheckIn_reservaCancelada_devuelve409() throws Exception {
+        when(reservaService.hacerCheckIn(1L, 3L))
+                .thenThrow(new ReservaNoActivaException("La reserva 1 está cancelada"));
+
+        mockMvc.perform(put("/api/v1/reservas/1/checkin"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.codigo").value("RESERVA_NO_ACTIVA"));
+    }
+
+    @Test
+    void verificarReserva_porCoordinador_devuelve200() throws Exception {
+        ReservaDto verificada = new ReservaDto(
+                1L, 1L, 3L, "Relator Ficticio Uno", "Taller Excel",
+                LocalDate.of(2026, 11, 20), 2, 4, EstadoReserva.ACTIVA, null, true, null
+        );
+        when(reservaService.verificarReserva(1L, true)).thenReturn(verificada);
+
+        mockMvc.perform(put("/api/v1/reservas/1/verificar").principal(coordinador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verificada").value(true));
+    }
+
+    @Test
+    void verificarReserva_porRelator_devuelve403() throws Exception {
+        // Sin rol COORDINADOR, el controlador debe pasar esCoordinador = false.
+        when(reservaService.verificarReserva(1L, false))
+                .thenThrow(new SinPermisoException("Solo el coordinador puede verificar una reserva"));
+
+        mockMvc.perform(put("/api/v1/reservas/1/verificar"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("SIN_PERMISO"));
+    }
+
+    @Test
+    void verificarReserva_reservaCancelada_devuelve409() throws Exception {
+        when(reservaService.verificarReserva(1L, true))
+                .thenThrow(new ReservaNoActivaException("La reserva 1 está cancelada"));
+
+        mockMvc.perform(put("/api/v1/reservas/1/verificar").principal(coordinador()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.codigo").value("RESERVA_NO_ACTIVA"));
+    }
+
+    @Test
+    void marcarNoPresentado_porCoordinador_devuelve200() throws Exception {
+        ReservaDto noPresentado = new ReservaDto(
+                1L, 1L, 3L, "Relator Ficticio Uno", "Taller Excel",
+                LocalDate.of(2026, 11, 20), 2, 4, EstadoReserva.ACTIVA, null, null, true
+        );
+        when(reservaService.marcarNoPresentado(1L, true)).thenReturn(noPresentado);
+
+        mockMvc.perform(put("/api/v1/reservas/1/no-presentado").principal(coordinador()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.noPresentado").value(true))
+                .andExpect(jsonPath("$.estado").value("ACTIVA"));
+    }
+
+    @Test
+    void marcarNoPresentado_porRelator_devuelve403() throws Exception {
+        when(reservaService.marcarNoPresentado(1L, false))
+                .thenThrow(new SinPermisoException("Solo el coordinador puede marcar una reserva como no presentado"));
+
+        mockMvc.perform(put("/api/v1/reservas/1/no-presentado"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.codigo").value("SIN_PERMISO"));
+    }
+
+    @Test
+    void marcarNoPresentado_reservaCancelada_devuelve409() throws Exception {
+        when(reservaService.marcarNoPresentado(1L, true))
+                .thenThrow(new ReservaNoActivaException("La reserva 1 está cancelada"));
+
+        mockMvc.perform(put("/api/v1/reservas/1/no-presentado").principal(coordinador()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.codigo").value("RESERVA_NO_ACTIVA"));
     }
 }

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +31,7 @@ import cl.duoc.reservasalas.reservas.exception.BloqueInvalidoException;
 import cl.duoc.reservasalas.reservas.exception.CruceHorarioException;
 import cl.duoc.reservasalas.reservas.exception.DatosInvalidosException;
 import cl.duoc.reservasalas.reservas.exception.FechaPasadaException;
+import cl.duoc.reservasalas.reservas.exception.ReservaNoActivaException;
 import cl.duoc.reservasalas.reservas.exception.ReservaNoEncontradaException;
 import cl.duoc.reservasalas.reservas.exception.SalaInactivaException;
 import cl.duoc.reservasalas.reservas.exception.SinPermisoException;
@@ -271,5 +273,110 @@ class ReservaServiceTest {
 
         assertThrows(ReservaNoEncontradaException.class, () ->
                 reservaService.cancelarReserva(999L, 3L, false));
+    }
+
+    // ----- Check-in, verificar y no presentado (Contrato 1, versión 6) -----
+
+    @Test
+    void hacerCheckIn_porDuenio_guardaLaHoraYLaReservaSigueActiva() {
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReservaDto resultado = reservaService.hacerCheckIn(10L, 3L);
+
+        assertNotNull(resultado.horaCheckIn());
+        assertEquals(0, resultado.horaCheckIn().getSecond());
+        assertEquals(EstadoReserva.ACTIVA, resultado.estado());
+    }
+
+    @Test
+    void hacerCheckIn_repetido_conservaLaPrimeraHora() {
+        reservaExistente.setHoraCheckIn(LocalTime.of(9, 10));
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReservaDto resultado = reservaService.hacerCheckIn(10L, 3L);
+
+        assertEquals(LocalTime.of(9, 10), resultado.horaCheckIn());
+    }
+
+    @Test
+    void hacerCheckIn_porOtroUsuario_lanzaSinPermisoException() {
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+
+        assertThrows(SinPermisoException.class, () -> reservaService.hacerCheckIn(10L, 99L));
+        verify(reservaRepository, never()).save(any());
+    }
+
+    @Test
+    void hacerCheckIn_reservaCancelada_lanzaReservaNoActivaException() {
+        reservaExistente.setEstado(EstadoReserva.CANCELADA);
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+
+        assertThrows(ReservaNoActivaException.class, () -> reservaService.hacerCheckIn(10L, 3L));
+        verify(reservaRepository, never()).save(any());
+    }
+
+    @Test
+    void hacerCheckIn_reservaNoExiste_lanzaReservaNoEncontradaException() {
+        when(reservaRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ReservaNoEncontradaException.class, () -> reservaService.hacerCheckIn(999L, 3L));
+    }
+
+    @Test
+    void verificarReserva_porCoordinador_marcaVerificada() {
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReservaDto resultado = reservaService.verificarReserva(10L, true);
+
+        assertTrue(resultado.verificada());
+        assertEquals(EstadoReserva.ACTIVA, resultado.estado());
+    }
+
+    @Test
+    void verificarReserva_porRelator_lanzaSinPermisoException() {
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+
+        assertThrows(SinPermisoException.class, () -> reservaService.verificarReserva(10L, false));
+        verify(reservaRepository, never()).save(any());
+    }
+
+    @Test
+    void verificarReserva_reservaCancelada_lanzaReservaNoActivaException() {
+        reservaExistente.setEstado(EstadoReserva.CANCELADA);
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+
+        assertThrows(ReservaNoActivaException.class, () -> reservaService.verificarReserva(10L, true));
+        verify(reservaRepository, never()).save(any());
+    }
+
+    @Test
+    void marcarNoPresentado_porCoordinador_marcaNoPresentadoYLaReservaSigueActiva() {
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+        when(reservaRepository.save(any(Reserva.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReservaDto resultado = reservaService.marcarNoPresentado(10L, true);
+
+        assertTrue(resultado.noPresentado());
+        assertEquals(EstadoReserva.ACTIVA, resultado.estado());
+    }
+
+    @Test
+    void marcarNoPresentado_porRelator_lanzaSinPermisoException() {
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+
+        assertThrows(SinPermisoException.class, () -> reservaService.marcarNoPresentado(10L, false));
+        verify(reservaRepository, never()).save(any());
+    }
+
+    @Test
+    void marcarNoPresentado_reservaCancelada_lanzaReservaNoActivaException() {
+        reservaExistente.setEstado(EstadoReserva.CANCELADA);
+        when(reservaRepository.findById(10L)).thenReturn(Optional.of(reservaExistente));
+
+        assertThrows(ReservaNoActivaException.class, () -> reservaService.marcarNoPresentado(10L, true));
+        verify(reservaRepository, never()).save(any());
     }
 }

@@ -83,6 +83,11 @@ public class ManejadorGlobalErrores {
         return responder(HttpStatus.CONFLICT, "USUARIO_OCUPADO", ex.getMessage());
     }
 
+    @ExceptionHandler(ReservaNoActivaException.class)
+    public ResponseEntity<ErrorResponse> reservaNoActiva(ReservaNoActivaException ex) {
+        return responder(HttpStatus.CONFLICT, "RESERVA_NO_ACTIVA", ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> otrosErrores(Exception ex) {
         if (ex instanceof org.springframework.web.ErrorResponse errorSpring) {

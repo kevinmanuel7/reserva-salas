@@ -1,6 +1,9 @@
 package cl.duoc.reservasalas.reservas.dto;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import cl.duoc.reservasalas.reservas.model.EstadoReserva;
 import cl.duoc.reservasalas.reservas.model.Reserva;
@@ -14,7 +17,12 @@ public record ReservaDto(
         LocalDate fecha,
         Integer bloqueInicio,
         Integer bloqueFin,
-        EstadoReserva estado
+        EstadoReserva estado,
+        // Campos de la versión 6 del Contrato 1 (null si todavía no se marcan).
+        @JsonFormat(pattern = "HH:mm")
+        LocalTime horaCheckIn,
+        Boolean verificada,
+        Boolean noPresentado
 ) {
     public static ReservaDto desde(Reserva r) {
         return new ReservaDto(
@@ -26,7 +34,10 @@ public record ReservaDto(
                 r.getFecha(),
                 r.getBloqueInicio(),
                 r.getBloqueFin(),
-                r.getEstado()
+                r.getEstado(),
+                r.getHoraCheckIn(),
+                r.getVerificada(),
+                r.getNoPresentado()
         );
     }
 }
