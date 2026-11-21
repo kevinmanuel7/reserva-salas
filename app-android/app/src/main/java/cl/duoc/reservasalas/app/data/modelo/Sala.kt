@@ -30,7 +30,8 @@ data class Sala(
     val ubicacion: String,
     val equipos: List<Equipo>,
     /** null = la sala usa el horario general. */
-    val horarioPropio: HorarioSala? = null
+    val horarioPropio: HorarioSala? = null,
+    val id: Long = 0L
 ) {
     /** true si al menos un equipo tiene falla (la tarjeta muestra el chip rojo "Con falla"). */
     val tieneFallas: Boolean

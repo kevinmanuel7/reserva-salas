@@ -22,6 +22,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import cl.duoc.reservasalas.app.data.remote.TokenInterceptor
 import okhttp3.OkHttpClient
+import cl.duoc.reservasalas.app.data.remote.SalasApi
 
 /**
  * Inyección de dependencias manual: aquí se crea cada objeto una sola vez
@@ -55,6 +56,16 @@ class AppContainer(context: Context) {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(UsuariosApi::class.java)
+    }
+
+    // Endpoints de ms-salas (puerto 8082 en local). Usa clienteHttp, así también lleva el token.
+    private val salasApi: SalasApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.URL_MS_SALAS)
+            .client(clienteHttp)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(SalasApi::class.java)
     }
 
     val sesionDataStore = SesionDataStore(context.sesionDataStore)
