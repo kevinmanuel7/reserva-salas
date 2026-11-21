@@ -155,6 +155,29 @@ Terminó la etapa maqueta: ahora cada parte de la app se conecta al backend real
     no la borre. Los archivos los maneja `data/local/AlmacenFotoPerfil.kt`.
 - Supervisar reserva pide el relator con `repositorioPerfil.obtenerUsuario(id)` (solo
   coordinador) para mostrar su teléfono y área, con el botón "Llamar" (`Intent.ACTION_DIAL`).
+
+### API externa: feriados de Chile (Nager.Date)
+- Es el requisito de "API externa" de la pauta. Endpoint público y sin clave:
+  `GET https://date.nager.at/api/v3/PublicHolidays/{anio}/CL`. La URL base está en
+  `app/build.gradle.kts` como `URL_API_FERIADOS`.
+- Archivos: `data/remote/FeriadosApi.kt`, `data/remote/dto/FeriadoDtos.kt`,
+  `data/modelo/Feriado.kt` y `data/repository/RepositorioFeriados.kt`
+  (`RepositorioFeriadosRemoto`, interfaz en `Repositorios.kt`).
+- **Va sin token.** En `AppContainer` usa su propio `OkHttpClient`, sin `TokenInterceptor`:
+  el token de nuestros usuarios solo viaja a nuestro backend, nunca a un servidor externo.
+  No reutilizar `clienteHttp` para APIs externas.
+- **Filtro de región:** solo se conservan los feriados nacionales (`global == true`) y los que
+  incluyen la Región de Valparaíso (`"CL-VS"` en `counties`), porque la sede es Viña del Mar.
+- Se guardan en memoria por año (se piden una vez por año y por apertura de la app). Si la API
+  falla, el repositorio devuelve null o vacío sin lanzar excepciones y no guarda nada, para
+  reintentar después: sin conexión la app funciona igual, pero sin avisos de feriados.
+- Para qué se usa:
+  - **Reservar:** `ReservarViewModel.seleccionarFecha` consulta `feriadoEn(fecha)`. Si es feriado
+    se muestra "Feriado: <nombre>. La sede no funciona este día." y no se puede confirmar;
+    `crearReserva` también lo rechaza.
+  - **Inicio del relator y del coordinador:** tarjeta `TarjetaFeriado` (en `ui/componentes/`) con
+    el próximo feriado. Sin datos, no se muestra.
+- El backend no valida feriados (fuera de alcance).
 - El horario general es remoto (`GET /horario` de ms-reservas, público). Se carga al abrir
   la app y cada pantalla que lo usa llama a `repositorioHorario.refrescar()` al abrirse
   (Detalle de sala, Reservar y Horario general). Al guardar una sala, la app envía
@@ -257,7 +280,7 @@ Todo esto ya existe. Úsalo, no lo dupliques.
   Gris85, RojoError, VerdeExito, GrisCancelada, GrisOcupado, GrisSobreNegro, Blanco).
 - **Componentes** (`ui/componentes/`): BarraSuperior, BarraInferior, LogoDuoc, BotonPrincipal,
   BotonSecundario, BotonPeligro, ChipEstado, ChipEquipo, ChipRol, TarjetaSala, TarjetaMetrica,
-  AvisoDestacado, FormaTarjeta y PantallaEnConstruccion. Cada archivo tiene su @Preview.
+  TarjetaFeriado, AvisoDestacado, FormaTarjeta y PantallaEnConstruccion. Cada archivo tiene su @Preview.
 - **Modelos** (`data/modelo/`): Sala, Equipo, EstadoEquipo, HorarioSala, Bloque, HorarioGeneral,
   Reserva, EstadoReserva, y funciones de formato (formatearHora, formatearFechaLarga, formatearFechaCorta).
   `Usuario` y `Rol` están en `model/` (son del login).

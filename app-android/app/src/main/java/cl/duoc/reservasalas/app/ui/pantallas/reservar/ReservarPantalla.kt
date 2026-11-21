@@ -24,6 +24,7 @@ import cl.duoc.reservasalas.app.data.modelo.Bloque
 import cl.duoc.reservasalas.app.data.modelo.EstadoBloque
 import cl.duoc.reservasalas.app.data.modelo.estadoBloque
 import cl.duoc.reservasalas.app.data.repository.ResultadoReserva
+import cl.duoc.reservasalas.app.ui.componentes.AvisoDestacado
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -52,6 +53,7 @@ fun ReservarPantalla(
     val salas = viewModel.salas.collectAsState().value
     val horarioGeneral = viewModel.horario.collectAsState().value
     val reservas = viewModel.reservas.collectAsState().value
+    val feriado = viewModel.feriado.collectAsState().value
     val sala = salas.find { it.codigo == codigo }
 
     val hoy = viewModel.reloj.hoy()
@@ -267,6 +269,8 @@ fun ReservarPantalla(
                                     fechaSeleccionada = fecha
                                     bloquesSeleccionados = emptyList()
                                     mensajeError = null
+                                    // El ViewModel revisa si el día elegido es feriado.
+                                    viewModel.seleccionarFecha(fecha)
                                 },
                             color = if (seleccionada) {
                                 AmarilloReserva
@@ -320,6 +324,13 @@ fun ReservarPantalla(
                             }
                         }
                     }
+                }
+
+                // Aviso de feriado (API externa): ese día la sede no funciona.
+                feriado?.let {
+                    AvisoDestacado(
+                        texto = ReservarViewModel.mensajeFeriado(it)
+                    )
                 }
 
                 Row(
@@ -591,6 +602,7 @@ fun ReservarPantalla(
                         },
                         enabled = bloquesSeleccionados.isNotEmpty() &&
                                 !guardando &&
+                                feriado == null &&
                                 fechaSeleccionada.dayOfWeek in horarioGeneral.dias &&
                                 bloquesSeleccionados.all {
                                     bloqueDisponible(it)

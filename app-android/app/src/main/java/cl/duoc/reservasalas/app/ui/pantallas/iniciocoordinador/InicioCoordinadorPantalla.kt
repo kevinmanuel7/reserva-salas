@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cl.duoc.reservasalas.app.ReservaSalasApp
 import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
+import cl.duoc.reservasalas.app.data.modelo.Feriado
+import cl.duoc.reservasalas.app.ui.componentes.TarjetaFeriado
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
 import java.time.Duration
 import java.time.format.DateTimeFormatter
@@ -50,6 +52,12 @@ fun InicioCoordinadorPantalla(
     }
 
     val ahora = app.container.reloj.ahora()
+
+    // Próximo feriado de la sede (API externa Nager.Date). null = sin datos.
+    var proximoFeriado by remember { mutableStateOf<Feriado?>(null) }
+    LaunchedEffect(Unit) {
+        proximoFeriado = app.container.repositorioFeriados.proximoFeriado(ahora.toLocalDate())
+    }
     val hoy = ahora.toLocalDate()
     val horaActual = ahora.toLocalTime()
 
@@ -170,6 +178,16 @@ fun InicioCoordinadorPantalla(
                         .height(4.dp)
                         .background(AmarilloCoordinador)
                 )
+            }
+
+            // Próximo feriado de la sede (API externa). Sin datos, no se muestra.
+            proximoFeriado?.let { feriado ->
+                item {
+                    TarjetaFeriado(
+                        feriado = feriado,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 18.dp)
+                    )
+                }
             }
 
             item {

@@ -12,9 +12,12 @@ import cl.duoc.reservasalas.app.ReservaSalasApp
 import cl.duoc.reservasalas.app.data.falso.Reloj
 import cl.duoc.reservasalas.app.data.local.SesionDataStore
 import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
+import cl.duoc.reservasalas.app.data.modelo.Feriado
 import cl.duoc.reservasalas.app.data.modelo.Reserva
+import cl.duoc.reservasalas.app.data.repository.RepositorioFeriados
 import cl.duoc.reservasalas.app.data.repository.RepositorioReservas
 
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -29,20 +32,26 @@ data class InicioRelatorUiState(
     val proximaReserva: Reserva? = null,
     val reservasSemana: List<Reserva> = emptyList(),
     val recordatorio: Reserva? = null,
+    /** Próximo feriado de la sede (API externa). null = sin datos: la tarjeta no se muestra. */
+    val proximoFeriado: Feriado? = null,
     val cargando: Boolean = true
 )
 
 class InicioRelatorViewModel(
     sesionDataStore: SesionDataStore,
     repositorioReservas: RepositorioReservas,
-    val reloj: Reloj
+    val reloj: Reloj,
+    repositorioFeriados: RepositorioFeriados
 ) : ViewModel() {
+
+    private val proximoFeriado = MutableStateFlow<Feriado?>(null)
 
     val uiState: StateFlow<InicioRelatorUiState> =
         combine(
             sesionDataStore.sesion,
-            repositorioReservas.reservas
-        ) { sesion, reservas ->
+            repositorioReservas.reservas,
+            proximoFeriado
+        ) { sesion, reservas, feriado ->
 
             val ahora = reloj.ahora()
             val usuario = sesion?.usuario
@@ -80,6 +89,8 @@ class InicioRelatorViewModel(
                     it.mostrarRecordatorio(ahora)
                 },
 
+                proximoFeriado = feriado,
+
                 cargando = false
             )
         }.stateIn(
@@ -88,9 +99,10 @@ class InicioRelatorViewModel(
             InicioRelatorUiState()
         )
 
-    // Al abrir la pantalla se piden las reservas al servidor.
+    // Al abrir la pantalla se piden las reservas al servidor y el próximo feriado a la API externa.
     init {
         viewModelScope.launch { repositorioReservas.refrescar() }
+        viewModelScope.launch { proximoFeriado.value = repositorioFeriados.proximoFeriado(reloj.hoy()) }
     }
 
     companion object {
@@ -103,7 +115,8 @@ class InicioRelatorViewModel(
                 InicioRelatorViewModel(
                     contenedor.sesionDataStore,
                     contenedor.repositorioReservas,
-                    contenedor.reloj
+                    contenedor.reloj,
+                    contenedor.repositorioFeriados
                 )
             }
         }

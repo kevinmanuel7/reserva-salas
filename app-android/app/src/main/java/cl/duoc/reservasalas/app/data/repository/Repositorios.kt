@@ -2,6 +2,7 @@
 package cl.duoc.reservasalas.app.data.repository
 
 import cl.duoc.reservasalas.app.data.modelo.Bloque
+import cl.duoc.reservasalas.app.data.modelo.Feriado
 import cl.duoc.reservasalas.app.data.modelo.HorarioGeneral
 import cl.duoc.reservasalas.app.data.modelo.Reserva
 import cl.duoc.reservasalas.app.data.modelo.Sala
@@ -96,6 +97,18 @@ interface RepositorioPerfil {
 
     /** GET /usuarios/{id}: solo coordinador. */
     suspend fun obtenerUsuario(id: Int): PerfilUsuario
+}
+
+/**
+ * Feriados de Chile que aplican a la sede (API externa Nager.Date).
+ * Nunca lanza excepciones: sin conexión responde null, y la app sigue funcionando sin avisos.
+ */
+interface RepositorioFeriados {
+    /** El feriado de esa fecha, o null si es un día normal (o si no se pudo consultar). */
+    suspend fun feriadoEn(fecha: LocalDate): Feriado?
+
+    /** El primer feriado desde [desde] (incluido), o null si no hay datos. */
+    suspend fun proximoFeriado(desde: LocalDate): Feriado?
 }
 
 interface RepositorioHorario {

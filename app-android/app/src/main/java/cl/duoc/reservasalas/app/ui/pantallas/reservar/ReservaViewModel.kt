@@ -9,7 +9,12 @@ import cl.duoc.reservasalas.app.ReservaSalasApp
 import cl.duoc.reservasalas.app.data.falso.Reloj
 import cl.duoc.reservasalas.app.data.local.SesionDataStore
 import cl.duoc.reservasalas.app.data.modelo.Bloque
+import cl.duoc.reservasalas.app.data.modelo.Feriado
 import cl.duoc.reservasalas.app.data.modelo.HorarioGeneral
+import cl.duoc.reservasalas.app.data.repository.RepositorioFeriados
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import cl.duoc.reservasalas.app.data.modelo.Reserva
 import cl.duoc.reservasalas.app.data.modelo.Sala
 import cl.duoc.reservasalas.app.data.modelo.bloques
@@ -27,7 +32,8 @@ class ReservarViewModel(
     private val repositorioHorario: RepositorioHorario,
     private val repositorioReservas: RepositorioReservas,
     private val sesionDataStore: SesionDataStore,
-    val reloj: Reloj
+    val reloj: Reloj,
+    private val repositorioFeriados: RepositorioFeriados
 ) : ViewModel() {
 
     val salas: StateFlow<List<Sala>> = repositorioSalas.salas
@@ -36,11 +42,28 @@ class ReservarViewModel(
 
     val reservas: StateFlow<List<Reserva>> = repositorioReservas.reservas
 
+    // Feriado de la fecha elegida (API externa Nager.Date). null = día normal o sin datos.
+    private val _feriado = MutableStateFlow<Feriado?>(null)
+    val feriado: StateFlow<Feriado?> = _feriado.asStateFlow()
+
+    // Consulta en curso: si el usuario toca otro día antes de que responda, se cancela.
+    private var consultaFeriado: Job? = null
+
     // Al abrir la pantalla se piden las reservas (para ver los bloques ocupados)
-    // y el horario general (por si el coordinador lo cambió).
+    // y el horario general (por si el coordinador lo cambió). La pantalla parte en hoy.
     init {
         viewModelScope.launch { repositorioReservas.refrescar() }
         viewModelScope.launch { repositorioHorario.refrescar() }
+        seleccionarFecha(reloj.hoy())
+    }
+
+    /** La pantalla avisa la fecha elegida; si es feriado, [feriado] lo indica y no se puede reservar. */
+    fun seleccionarFecha(fecha: LocalDate) {
+        consultaFeriado?.cancel()
+        _feriado.value = null
+        consultaFeriado = viewModelScope.launch {
+            _feriado.value = repositorioFeriados.feriadoEn(fecha)
+        }
     }
 
     fun obtenerBloques(sala: Sala, horarioGeneral: HorarioGeneral): List<Bloque> {
@@ -64,6 +87,13 @@ class ReservarViewModel(
                 return@launch
             }
 
+            // Regla de la sede: en un feriado no funciona, así que no se reserva.
+            val feriado = repositorioFeriados.feriadoEn(fecha)
+            if (feriado != null) {
+                alTerminar(ResultadoReserva.Error(mensajeFeriado(feriado)))
+                return@launch
+            }
+
             val resultado = repositorioReservas.crear(
                 codigoSala = codigoSala,
                 usuario = sesion.usuario,
@@ -77,6 +107,10 @@ class ReservarViewModel(
     }
 
     companion object {
+        /** Ej. "Feriado: Navidad. La sede no funciona este día." */
+        fun mensajeFeriado(feriado: Feriado): String =
+            "Feriado: ${feriado.nombre}. La sede no funciona este día."
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val contenedor =
@@ -87,7 +121,8 @@ class ReservarViewModel(
                     repositorioHorario = contenedor.repositorioHorario,
                     repositorioReservas = contenedor.repositorioReservas,
                     sesionDataStore = contenedor.sesionDataStore,
-                    reloj = contenedor.reloj
+                    reloj = contenedor.reloj,
+                    repositorioFeriados = contenedor.repositorioFeriados
                 )
             }
         }

@@ -27,6 +27,9 @@ import cl.duoc.reservasalas.app.data.local.AlmacenFotoPerfilArchivos
 import cl.duoc.reservasalas.app.data.local.PerfilDataStore
 import cl.duoc.reservasalas.app.data.local.perfilDataStore
 import cl.duoc.reservasalas.app.data.repository.RepositorioPerfil
+import cl.duoc.reservasalas.app.data.remote.FeriadosApi
+import cl.duoc.reservasalas.app.data.repository.RepositorioFeriados
+import cl.duoc.reservasalas.app.data.repository.RepositorioFeriadosRemoto
 import cl.duoc.reservasalas.app.data.repository.RepositorioPerfilRemoto
 
 /**
@@ -77,6 +80,22 @@ class AppContainer(context: Context) {
             .create(ReservasApi::class.java)
     }
 
+    // API externa de feriados (Nager.Date). Usa un OkHttpClient PROPIO, sin TokenInterceptor:
+    // clienteHttp agrega "Authorization: Bearer <token>" a cada petición, y el token de
+    // nuestros usuarios solo debe viajar a nuestro backend, nunca a un servidor externo.
+    private val clienteHttpExterno: OkHttpClient by lazy {
+        OkHttpClient.Builder().build()
+    }
+
+    private val feriadosApi: FeriadosApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.URL_API_FERIADOS)
+            .client(clienteHttpExterno)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(FeriadosApi::class.java)
+    }
+
     val sesionDataStore = SesionDataStore(context.sesionDataStore)
 
     private val authRepository: AuthRepository by lazy {
@@ -98,4 +117,7 @@ class AppContainer(context: Context) {
     val repositorioPerfil: RepositorioPerfil = RepositorioPerfilRemoto(usuariosApi, json)
     val perfilDataStore = PerfilDataStore(context.perfilDataStore)
     val almacenFotoPerfil: AlmacenFotoPerfil = AlmacenFotoPerfilArchivos(context)
+
+    // Feriados nacionales y de la región de Valparaíso, guardados en memoria por año.
+    val repositorioFeriados: RepositorioFeriados = RepositorioFeriadosRemoto(feriadosApi)
 }

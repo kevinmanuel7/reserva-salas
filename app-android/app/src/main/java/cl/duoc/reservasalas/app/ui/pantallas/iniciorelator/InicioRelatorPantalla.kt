@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cl.duoc.reservasalas.app.ui.componentes.TarjetaFeriado
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -171,6 +172,11 @@ fun InicioRelatorPantalla(
                         }
                     }
                 }
+            }
+
+            // Próximo feriado de la sede (API externa). Sin datos, no se muestra.
+            estado.proximoFeriado?.let { feriado ->
+                TarjetaFeriado(feriado = feriado)
             }
 
             Surface(

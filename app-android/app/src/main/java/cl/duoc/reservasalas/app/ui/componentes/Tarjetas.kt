@@ -5,11 +5,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,7 +31,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cl.duoc.reservasalas.app.R
 import cl.duoc.reservasalas.app.data.falso.DatosFalsos
+import cl.duoc.reservasalas.app.data.modelo.Feriado
 import cl.duoc.reservasalas.app.data.modelo.Sala
+import cl.duoc.reservasalas.app.data.modelo.formatearFechaLarga
+import java.time.LocalDate
 import cl.duoc.reservasalas.app.ui.theme.AmarilloDuoc
 import cl.duoc.reservasalas.app.ui.theme.AmarilloSuave
 import cl.duoc.reservasalas.app.ui.theme.Borde
@@ -141,12 +148,50 @@ fun AvisoDestacado(
     }
 }
 
+/**
+ * Próximo feriado de la sede (API externa Nager.Date): fecha y nombre, con una franja amarilla
+ * a la izquierda. Se usa en el Inicio del relator y en el del coordinador.
+ */
+@Composable
+fun TarjetaFeriado(
+    feriado: Feriado,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .estiloTarjeta(null)
+    ) {
+        Box(
+            Modifier
+                .width(6.dp)
+                .fillMaxHeight()
+                .background(AmarilloDuoc, RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
+        )
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text("Próximo feriado", fontSize = 13.sp, color = Gris85)
+            Text(
+                formatearFechaLarga(feriado.fecha),
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = NegroDuoc
+            )
+            Text(feriado.nombre, fontSize = 14.sp, color = NegroDuoc)
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun TarjetasPreview() {
     ReservaSalasTheme {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             AvisoDestacado("Tu reserva en LAB-01 empieza a las 10:05")
+            TarjetaFeriado(Feriado(LocalDate.of(2026, 12, 8), "Inmaculada Concepción"))
             TarjetaSala(DatosFalsos.salas.first(), alPresionar = {})
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 TarjetaMetrica("4", "reservas para hoy", Modifier.weight(1f))

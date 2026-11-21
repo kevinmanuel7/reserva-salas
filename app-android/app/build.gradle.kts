@@ -23,6 +23,8 @@ android {
         buildConfigField("String", "URL_MS_USUARIOS", "\"http://localhost:8081/api/v1/\"")
         buildConfigField("String", "URL_MS_SALAS", "\"http://localhost:8082/api/v1/\"")
         buildConfigField("String", "URL_MS_RESERVAS", "\"http://localhost:8083/api/v1/\"")
+        // API externa de feriados de Chile (Nager.Date). Pública: no lleva token ni clave.
+        buildConfigField("String", "URL_API_FERIADOS", "\"https://date.nager.at/api/v3/\"")
     }
 
     buildTypes {
