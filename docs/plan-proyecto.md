@@ -349,6 +349,7 @@ Nombres de equipo que usa la app (catálogo `CATALOGO_EQUIPOS`): "Proyector", "C
 | email    | Texto         | "relator1@duocuc.test" | Se usa para iniciar sesión. No se repite entre usuarios |
 | rol      | Lista cerrada | "RELATOR"              | Solo RELATOR o COORDINADOR                              |
 | password | Texto         | (nunca se muestra)     | Solo existe en el backend, guardada como hash           |
+| fechaNacimiento | Fecha «AAAA-MM-DD» (opcional) | "1990-05-20" | La registra el propio usuario. null hasta entonces. Desde la versión 8 |
 
 Dos reglas sobre la contraseña:
 
@@ -453,12 +454,14 @@ El backend es quien decide si hay cruce (de sala o del usuario), porque es el ú
 
 ## 5. Contrato 1: API REST (Backend ↔ Datos de la app)
 
-La API tiene 20 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}`, `GET /api/v1/bloques`, `GET /api/v1/reservas/disponibilidad` y `GET /api/v1/horario`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
+La API tiene 22 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}`, `GET /api/v1/bloques`, `GET /api/v1/reservas/disponibilidad` y `GET /api/v1/horario`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
 
 ### Registro de cambios del contrato
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
+| 8 | 2026-11-20 | Usuario suma el campo opcional `fechaNacimiento` (texto «AAAA-MM-DD»), al final del objeto `usuario`. Vale null hasta que el usuario la registra (los usuarios del dataset parten en null). El login y el refresh no cambian, salvo este campo al final de `usuario` | El usuario registra su fecha de nacimiento |
+| 8 | 2026-11-20 | Nuevos `GET /usuarios/me` y `PUT /usuarios/me` (ambos roles, con token). El usuario sale del token (`sub`), nunca de la ruta. PUT recibe solo `fechaNacimiento`; si llegan nombre, email, rol u otros campos, se ignoran. Si falta, tiene otro formato, es futura o el usuario tendría menos de 18 años → `400 DATOS_INVALIDOS` | Cada usuario ve y completa sus propios datos, sin poder cambiar su identidad ni su rol |
 | 7 | 2026-11-20 | Nuevo recurso **horario general** (una sola fila de configuración, sección 4): `apertura` y `cierre` (texto «HH:MM»), `pausaMinutos` (entero) y `dias` (lista de días en inglés y MAYÚSCULAS: `MONDAY` … `SUNDAY`). Por defecto: 08:00 a 21:00, pausa de 5 minutos, lunes a viernes. Si la tabla está vacía al arrancar, ms-reservas crea la fila con esos valores | El coordinador edita el horario general (requisito del mandante, sección 1) |
 | 7 | 2026-11-20 | Nuevos `GET /horario` (público) y `PUT /horario` (solo coordinador). PUT valida horas exactas entre 08:00 y 21:00, apertura antes del cierre, `pausaMinutos` de 0 a 30 y `dias` no vacío; si falla → `400 DATOS_INVALIDOS` | Que el horario guardado siempre sea coherente |
 | 7 | 2026-11-20 | No cambian `Bloque`, `GET /bloques`, el dataset de bloques ni las validaciones de reservas: las reservas siguen guardando números de bloque y todavía **no** se validan contra el horario general | La web y las reservas existentes usan los números de bloque; conectar ambos se diseña aparte |
@@ -530,7 +533,7 @@ Cada pedido de la app al servidor tiene tres partes:
 
 | Microservicio | Puerto | Rutas que atiende                   | Responsabilidad                          |
 |---------------|--------|-------------------------------------|------------------------------------------|
-| ms-usuarios   | 8081   | /api/v1/auth/**                     | Login, renovación del token y usuarios   |
+| ms-usuarios   | 8081   | /api/v1/auth/**, /api/v1/usuarios/** | Login, renovación del token y usuarios   |
 | ms-salas      | 8082   | /api/v1/salas/**                    | Catálogo de salas                        |
 | ms-reservas   | 8083   | /api/v1/bloques, /api/v1/reservas/**, /api/v1/horario | Bloques, horario general, reservas y validación de cruces |
 
@@ -546,6 +549,10 @@ La columna «Quién» indica qué rol puede usar el endpoint. Si otro rol lo int
 |--------|----------------------|-----------------------|--------------------------------|----------------------------------------------|
 | POST   | /api/v1/auth/login   | Público               | email, password                | 200 con token y usuario (sin password) · 401 |
 | POST   | /api/v1/auth/refresh | Ambos                 | Nada (solo el token vigente)   | 200 con token nuevo y usuario · 401          |
+| GET    | /api/v1/usuarios/me  | Ambos                 | Nada (el usuario sale del token) | 200 con el usuario (sin password) · 401    |
+| PUT    | /api/v1/usuarios/me  | Ambos                 | fechaNacimiento                | 200 con el usuario actualizado · 400 · 401   |
+
+**Mis datos (versión 8).** `PUT /usuarios/me` revisa en este orden: `fechaNacimiento` viene y tiene formato «AAAA-MM-DD»; no es posterior a hoy (hora de Chile); y el usuario tiene al menos 18 años (cumplirlos hoy sí vale). Si algo falla → 400 DATOS_INVALIDOS. Solo se guarda `fechaNacimiento`: nombre, email y rol no se pueden modificar y, si vienen en el cuerpo, se ignoran. Ejemplo de cuerpo: `{ "fechaNacimiento": "1990-05-20" }`.
 
 **ms-salas**
 
@@ -672,7 +679,8 @@ Respuesta 200:
 "id": 3,  
 "nombre": "Relator Ficticio Uno",  
 "email": "relator1@duocuc.test",  
-"rol": "RELATOR"  
+"rol": "RELATOR",  
+"fechaNacimiento": null  
 }  
 }
 

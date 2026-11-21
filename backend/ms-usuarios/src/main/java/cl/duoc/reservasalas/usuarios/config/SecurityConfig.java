@@ -27,8 +27,8 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Reglas de seguridad del servicio:
  * - Sin sesiones: cada petición se identifica solo con su token.
- * - POST /auth/login es la única ruta pública; todo lo demás exige
- *   el encabezado Authorization: Bearer <token>.
+ * - POST /auth/login es la única ruta pública; todo lo demás (refresh,
+ *   /usuarios/me) exige el encabezado Authorization: Bearer <token>.
  * Al definir esta configuración, Spring deja de crear el usuario "user" con la
  * contraseña generada que mostraba en consola.
  */

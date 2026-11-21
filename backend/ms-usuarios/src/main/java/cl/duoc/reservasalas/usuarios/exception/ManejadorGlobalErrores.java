@@ -35,6 +35,12 @@ public class ManejadorGlobalErrores {
         return responder(HttpStatus.BAD_REQUEST, "DATOS_INVALIDOS", "El cuerpo de la petición no es un JSON válido");
     }
 
+    // Regla de negocio no cumplida (ejemplo: menor de 18 años) → 400 DATOS_INVALIDOS.
+    @ExceptionHandler(DatosInvalidosException.class)
+    public ResponseEntity<ErrorResponse> reglaNoCumplida(DatosInvalidosException ex) {
+        return responder(HttpStatus.BAD_REQUEST, "DATOS_INVALIDOS", ex.getMessage());
+    }
+
     @ExceptionHandler(CredencialesInvalidasException.class)
     public ResponseEntity<ErrorResponse> credencialesInvalidas(CredencialesInvalidasException ex) {
         return responder(HttpStatus.UNAUTHORIZED, "CREDENCIALES_INVALIDAS", ex.getMessage());

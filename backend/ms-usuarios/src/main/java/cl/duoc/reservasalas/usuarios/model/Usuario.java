@@ -1,5 +1,7 @@
 package cl.duoc.reservasalas.usuarios.model;
 
+import java.time.LocalDate;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -34,6 +36,10 @@ public class Usuario {
     // Guardará el hash BCrypt (60 caracteres), nunca la contraseña tal cual.
     @Column(nullable = false, length = 100)
     private String password;
+
+    // Opcional (Contrato 1 v8): null hasta que el usuario la registre con PUT /usuarios/me.
+    @Column
+    private LocalDate fechaNacimiento;
 
     // JPA necesita un constructor vacío para crear objetos al leer de la base de datos.
     public Usuario() {
@@ -84,5 +90,13 @@ public class Usuario {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public LocalDate getFechaNacimiento() {
+        return fechaNacimiento;
+    }
+
+    public void setFechaNacimiento(LocalDate fechaNacimiento) {
+        this.fechaNacimiento = fechaNacimiento;
     }
 }

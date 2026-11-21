@@ -59,6 +59,9 @@ crear clases, tablas o endpoints.
     (varias reservas en una sola transacción, todo o nada).
 - Versión 7 (20/11/2026): horario general en ms-reservas, `GET /horario` (público)
   y `PUT /horario` (solo coordinador). No cambia los bloques ni valida reservas.
+- Versión 8 (20/11/2026): Usuario suma `fechaNacimiento` (opcional, al final), y se agregan
+  `GET /usuarios/me` y `PUT /usuarios/me` (ambos roles, con token). El PUT solo cambia
+  `fechaNacimiento` (no futura y mayor de 18 años); nombre, email y rol no se modifican.
 - La misma API la consume también el frontend web del ramo Desarrollo Fullstack II
   (repositorio `reserva-salas-web`). Un cambio de contrato afecta a la app y a la web.
 - Si este archivo y el plan se contradicen, preguntar antes de programar.

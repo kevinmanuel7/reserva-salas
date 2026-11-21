@@ -118,6 +118,9 @@ Dentro del paquete base, separar por capas:
 - Las contraseñas se guardan con hash BCrypt. Nunca en texto plano y nunca se
   devuelven en una respuesta.
 - Es el **único** microservicio que emite tokens JWT.
+- `GET` y `PUT /api/v1/usuarios/me` (Contrato 1 v8) trabajan siempre sobre el usuario
+  del token (`sub`). El PUT solo modifica `fechaNacimiento`; nombre, email y rol no se
+  cambian por la API.
 
 ## 7. Autenticación con JWT (aplica a los tres microservicios)
 
