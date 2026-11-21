@@ -9,12 +9,17 @@ import cl.duoc.reservasalas.app.ReservaSalasApp
 import cl.duoc.reservasalas.app.data.modelo.Sala
 import cl.duoc.reservasalas.app.data.repository.RepositorioSalas
 import kotlinx.coroutines.flow.StateFlow
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 
 class SalasViewModel(
     repositorioSalas: RepositorioSalas
 ) : ViewModel() {
 
     val salas: StateFlow<List<Sala>> = repositorioSalas.salas
+    init {
+        viewModelScope.launch { repositorioSalas.refrescar() }
+    }
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {

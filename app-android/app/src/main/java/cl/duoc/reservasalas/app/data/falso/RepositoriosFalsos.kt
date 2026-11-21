@@ -81,6 +81,9 @@ class RepositorioSalasFalso : RepositorioSalas {
             }
         }
     }
+
+    override suspend fun refrescar() {
+    }
 }
 
 class RepositorioHorarioFalso : RepositorioHorario {

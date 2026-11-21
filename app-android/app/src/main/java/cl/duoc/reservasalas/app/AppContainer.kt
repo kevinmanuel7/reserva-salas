@@ -1,13 +1,11 @@
 package cl.duoc.reservasalas.app
 
 import android.content.Context
-import cl.duoc.reservasalas.app.data.falso.AutenticacionFalsa
 import cl.duoc.reservasalas.app.data.falso.Reloj
 import cl.duoc.reservasalas.app.data.falso.RelojMaqueta
 import cl.duoc.reservasalas.app.data.falso.RelojSistema
 import cl.duoc.reservasalas.app.data.falso.RepositorioHorarioFalso
 import cl.duoc.reservasalas.app.data.falso.RepositorioReservasFalso
-import cl.duoc.reservasalas.app.data.falso.RepositorioSalasFalso
 import cl.duoc.reservasalas.app.data.local.SesionDataStore
 import cl.duoc.reservasalas.app.data.local.sesionDataStore
 import cl.duoc.reservasalas.app.data.remote.UsuariosApi
@@ -23,6 +21,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import cl.duoc.reservasalas.app.data.remote.TokenInterceptor
 import okhttp3.OkHttpClient
 import cl.duoc.reservasalas.app.data.remote.SalasApi
+import cl.duoc.reservasalas.app.data.repository.RepositorioSalasRemoto
 
 /**
  * Inyección de dependencias manual: aquí se crea cada objeto una sola vez
@@ -79,8 +78,7 @@ class AppContainer(context: Context) {
 
     val repositorioAutenticacion: RepositorioAutenticacion = authRepository
 
-    // Todavía no existen las versiones reales de estos tres (próxima evaluación).
-    val repositorioSalas: RepositorioSalas = RepositorioSalasFalso()
+    val repositorioSalas: RepositorioSalas = RepositorioSalasRemoto(salasApi)
     val repositorioReservas: RepositorioReservas = RepositorioReservasFalso(reloj)
     val repositorioHorario: RepositorioHorario = RepositorioHorarioFalso()
 }

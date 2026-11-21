@@ -23,6 +23,8 @@ interface RepositorioSalas {
     fun buscar(codigo: String): Sala?
 
     suspend fun guardar(sala: Sala)
+
+    suspend fun refrescar()
 }
 
 sealed interface ResultadoReserva {
