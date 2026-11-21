@@ -22,6 +22,7 @@ import cl.duoc.reservasalas.app.ui.navegacion.Rutas
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import cl.duoc.reservasalas.app.data.modelo.Reserva
 
 private val FondoDetalleReserva = Color(0xFFF2F3F5)
 private val OscuroDetalleReserva = Color(0xFF2D2927)
@@ -77,8 +78,8 @@ fun DetalleReservaPantalla(
         LocalDateTime.of(it.fecha, it.horaFin)
     }
 
-    val inicioCheckIn = inicioReserva?.minusMinutes(15)
-    val finCheckIn = inicioReserva?.plusMinutes(15)
+    val inicioCheckIn = inicioReserva?.minusMinutes(Reserva.MINUTOS_ANTES_CHECK_IN)
+    val finCheckIn = inicioReserva?.plusMinutes(Reserva.MINUTOS_DESPUES_CHECK_IN)
 
     val esReservada = reserva?.estado == EstadoReserva.RESERVADA
 
