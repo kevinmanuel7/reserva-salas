@@ -296,7 +296,7 @@ Son 12 semanas. Cuando se conozca la fecha de cierre del semestre se ponen fecha
 
 ## 4. Modelo de datos
 
-El sistema maneja cuatro entidades (Sala, Usuario, Bloque y Reserva) con los mismos nombres de campo en MySQL, en el JSON de la API y en Kotlin.
+El sistema maneja cuatro entidades (Sala, Usuario, Bloque y Reserva), más la configuración HorarioGeneral (v7), con los mismos nombres de campo en MySQL, en el JSON de la API y en Kotlin.
 
 **Reglas para todos los integrantes**
 
@@ -358,7 +358,7 @@ Dos reglas sobre la contraseña:
 
 ### Bloque
 
-Esta tabla es el horario predeterminado: 13 bloques con 5 minutos de pausa entre uno y otro, para que un grupo salga antes de que entre el siguiente. Por requisito del mandante, el coordinador podrá modificar el horario general y el de cada sala (sección 1); el diseño de esa edición está pendiente.
+Esta tabla es el horario predeterminado: 13 bloques con 5 minutos de pausa entre uno y otro, para que un grupo salga antes de que entre el siguiente. Por requisito del mandante, el coordinador puede modificar el horario general (tabla HorarioGeneral, Contrato 1 v7) y el de cada sala (v5). Por ahora esta tabla de bloques no se recalcula a partir del horario general: cómo conectar ambos está pendiente.
 
 | numero | horaInicio | horaFin |
 |--------|------------|---------|
@@ -377,6 +377,17 @@ Esta tabla es el horario predeterminado: 13 bloques con 5 minutos de pausa entre
 | 13     | 20:05      | 21:00   |
 
 El bloque 6 (almuerzo) también se puede reservar.
+
+### HorarioGeneral
+
+Configuración de una sola fila que edita el coordinador (Contrato 1 v7). Vive en ms-reservas; los días se guardan en la tabla `horario_general_dia`, unida por `horarioId`.
+
+| Campo        | Tipo                 | Ejemplo / por defecto                                    | Para qué sirve                                         |
+|--------------|----------------------|----------------------------------------------------------|--------------------------------------------------------|
+| apertura     | Hora                 | "08:00"                                                  | Inicio del horario. Hora exacta entre 08:00 y 21:00    |
+| cierre       | Hora                 | "21:00"                                                  | Fin del horario. Hora exacta, posterior a apertura     |
+| pausaMinutos | Entero de 0 a 30     | 5                                                        | Minutos de pausa entre un bloque y el siguiente        |
+| dias         | Lista de días        | ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"] | Días de atención, en inglés y MAYÚSCULAS. Al menos uno |
 
 ### Reserva
 
@@ -442,12 +453,15 @@ El backend es quien decide si hay cruce (de sala o del usuario), porque es el ú
 
 ## 5. Contrato 1: API REST (Backend ↔ Datos de la app)
 
-La API tiene 18 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}`, `GET /api/v1/bloques` y `GET /api/v1/reservas/disponibilidad`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
+La API tiene 20 endpoints repartidos en 3 microservicios. Todos responden JSON y todas las rutas empiezan con `/api/v1`. Son públicos (sin token) el login y las consultas del catálogo: `GET /api/v1/salas`, `GET /api/v1/salas/{id}`, `GET /api/v1/bloques`, `GET /api/v1/reservas/disponibilidad` y `GET /api/v1/horario`. Todo lo demás exige el token del usuario. La misma API la usan la app Android y el frontend web. En el resto de este documento las rutas se escriben sin el prefijo para abreviar: /salas significa /api/v1/salas.
 
 ### Registro de cambios del contrato
 
 | Versión | Fecha | Cambio | Motivo |
 |---------|-------|--------|--------|
+| 7 | 2026-11-20 | Nuevo recurso **horario general** (una sola fila de configuración, sección 4): `apertura` y `cierre` (texto «HH:MM»), `pausaMinutos` (entero) y `dias` (lista de días en inglés y MAYÚSCULAS: `MONDAY` … `SUNDAY`). Por defecto: 08:00 a 21:00, pausa de 5 minutos, lunes a viernes. Si la tabla está vacía al arrancar, ms-reservas crea la fila con esos valores | El coordinador edita el horario general (requisito del mandante, sección 1) |
+| 7 | 2026-11-20 | Nuevos `GET /horario` (público) y `PUT /horario` (solo coordinador). PUT valida horas exactas entre 08:00 y 21:00, apertura antes del cierre, `pausaMinutos` de 0 a 30 y `dias` no vacío; si falla → `400 DATOS_INVALIDOS` | Que el horario guardado siempre sea coherente |
+| 7 | 2026-11-20 | No cambian `Bloque`, `GET /bloques`, el dataset de bloques ni las validaciones de reservas: las reservas siguen guardando números de bloque y todavía **no** se validan contra el horario general | La web y las reservas existentes usan los números de bloque; conectar ambos se diseña aparte |
 | 6 | 2026-11-20 | Reserva suma tres campos opcionales al final: `horaCheckIn` (texto «HH:MM»), `verificada` y `noPresentado`. Valen null hasta que alguien los marca. No cambia ni se quita ningún campo, ruta ni validación anterior | Backend del check-in y del estado no presentado (requisitos del mandante, sección 1) |
 | 6 | 2026-11-20 | Nuevos `PUT /reservas/{id}/checkin` (solo el dueño), `PUT /reservas/{id}/verificar` y `PUT /reservas/{id}/no-presentado` (solo coordinador) | El relator confirma el uso del espacio y el coordinador lo verifica o marca la ausencia |
 | 6 | 2026-11-20 | Nuevo error `409 RESERVA_NO_ACTIVA` en esos tres endpoints, si la reserva está CANCELADA | Una reserva cancelada no tiene uso que confirmar |
@@ -518,7 +532,7 @@ Cada pedido de la app al servidor tiene tres partes:
 |---------------|--------|-------------------------------------|------------------------------------------|
 | ms-usuarios   | 8081   | /api/v1/auth/**                     | Login, renovación del token y usuarios   |
 | ms-salas      | 8082   | /api/v1/salas/**                    | Catálogo de salas                        |
-| ms-reservas   | 8083   | /api/v1/bloques, /api/v1/reservas/** | Bloques, reservas y validación de cruces |
+| ms-reservas   | 8083   | /api/v1/bloques, /api/v1/reservas/**, /api/v1/horario | Bloques, horario general, reservas y validación de cruces |
 
 En el servidor publicado (AWS EC2) los tres quedan detrás de **Nginx** en el puerto 80. Nginx entrega el frontend web y reenvía cada ruta /api/v1/... al microservicio que corresponde. Así la app y la web usan una sola dirección.
 
@@ -562,6 +576,17 @@ DELETE /salas/{id} **no borra la fila**: la marca como inactiva (regla «Retirar
 | PUT    | /api/v1/reservas/{id}/checkin   | Solo el dueño de la reserva             | Nada                                              | 200 con la reserva y su horaCheckIn · 403 · 404 · 409 |
 | PUT    | /api/v1/reservas/{id}/verificar | Coordinador                             | Nada                                              | 200 con la reserva en `verificada: true` · 403 · 404 · 409 |
 | PUT    | /api/v1/reservas/{id}/no-presentado | Coordinador                         | Nada                                              | 200 con la reserva en `noPresentado: true` · 403 · 404 · 409 |
+| GET    | /api/v1/horario                 | Público                                 | Nada                                              | 200 con el horario general                          |
+| PUT    | /api/v1/horario                 | Coordinador                             | apertura, cierre, pausaMinutos, dias              | 200 con el horario guardado · 400 · 401 · 403       |
+
+**Horario general (versión 7).** Ejemplo de respuesta de `GET /horario` (y de cuerpo de `PUT /horario`):
+
+```json
+{ "apertura": "08:00", "cierre": "21:00", "pausaMinutos": 5,
+  "dias": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"] }
+```
+
+`PUT /horario` revisa en este orden: los cuatro campos vienen, las horas tienen formato «HH:MM», cada día es un nombre válido, `pausaMinutos` está entre 0 y 30 y `dias` trae al menos un día (si no → 400 DATOS_INVALIDOS); quien llama es coordinador (si no → 403 SIN_PERMISO); `apertura` y `cierre` son horas exactas (minutos en 00), están entre 08:00 y 21:00, y `apertura` es anterior a `cierre` (si no → 400 DATOS_INVALIDOS). Los días repetidos se guardan una sola vez y en orden de la semana. Este horario todavía no cambia los bloques ni se usa para validar reservas.
 
 **Check-in, verificar y no presentado (versión 6).** Los tres revisan en este orden: la reserva existe (si no, 404 RESERVA_NO_ENCONTRADA), quien llama tiene permiso (si no, 403 SIN_PERMISO) y la reserva no está CANCELADA (si lo está, 409 RESERVA_NO_ACTIVA). Ninguno cambia `estado`: la reserva sigue ACTIVA, la validación de cruces la sigue viendo y la sala no se libera. El check-in guarda la hora actual de Chile; si se repite, conserva la primera hora. El check-in lo hace solo el dueño, aunque quien llame sea coordinador. Verificar no exige check-in previo, y check-in y no presentado pueden coexistir: el coordinador decide. El escaneo del QR y el aviso al coordinador todavía no tienen diseño.
 

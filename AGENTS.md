@@ -57,6 +57,8 @@ crear clases, tablas o endpoints.
   - Nuevos: `POST /auth/refresh` (renueva el token), `DELETE /salas/{id}` (baja
     lógica: `activa = false`, nunca borra la fila) y `POST /reservas/lote`
     (varias reservas en una sola transacción, todo o nada).
+- Versión 7 (20/11/2026): horario general en ms-reservas, `GET /horario` (público)
+  y `PUT /horario` (solo coordinador). No cambia los bloques ni valida reservas.
 - La misma API la consume también el frontend web del ramo Desarrollo Fullstack II
   (repositorio `reserva-salas-web`). Un cambio de contrato afecta a la app y a la web.
 - Si este archivo y el plan se contradicen, preguntar antes de programar.
@@ -68,10 +70,12 @@ Diseño en `docs/plan-proyecto.md` (secciones 4 y 5):
   Contrato 1 versión 5.
 - Backend del check-in, de la verificación del coordinador y del no presentado
   (campos y endpoints): Contrato 1 versión 6. La reserva sigue ACTIVA.
+- Horario general (apertura, cierre, pausa y días) con su lectura y edición:
+  Contrato 1 versión 7.
 
-Todavía no tienen diseño detallado: el escaneo del QR, el aviso al coordinador, la
-edición del horario general de bloques y las pantallas de estas funciones. Antes de
-implementarlos, preguntar.
+Todavía no tienen diseño detallado: el escaneo del QR, el aviso al coordinador, cómo
+el horario general recalcula los bloques y valida las reservas, y las pantallas de
+estas funciones. Antes de implementarlos, preguntar.
 
 ### Perfiles
 - Solo existen dos perfiles: **relator** y **coordinador**.

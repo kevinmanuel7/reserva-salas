@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import cl.duoc.reservasalas.reservas.model.Bloque;
 import cl.duoc.reservasalas.reservas.repository.BloqueRepository;
 import cl.duoc.reservasalas.reservas.repository.ReservaRepository;
+import cl.duoc.reservasalas.reservas.service.HorarioGeneralService;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
@@ -49,13 +50,16 @@ public class CargaReservasDataset implements ApplicationRunner {
 
     private final BloqueRepository bloqueRepository;
     private final ReservaRepository reservaRepository;
+    private final HorarioGeneralService horarioGeneralService;
     private final ObjectMapper objectMapper;
 
     public CargaReservasDataset(BloqueRepository bloqueRepository,
                                 ReservaRepository reservaRepository,
+                                HorarioGeneralService horarioGeneralService,
                                 ObjectMapper objectMapper) {
         this.bloqueRepository = bloqueRepository;
         this.reservaRepository = reservaRepository;
+        this.horarioGeneralService = horarioGeneralService;
         this.objectMapper = objectMapper;
     }
 
@@ -64,6 +68,17 @@ public class CargaReservasDataset implements ApplicationRunner {
     public void run(ApplicationArguments args) throws IOException {
         cargarBloques();
         cargarReservas();
+        cargarHorarioGeneral();
+    }
+
+    // El horario general no viene del dataset: si la tabla está vacía, se crea con
+    // los valores por defecto (08:00 a 21:00, pausa de 5 minutos, lunes a viernes).
+    private void cargarHorarioGeneral() {
+        if (horarioGeneralService.crearPorDefectoSiFalta()) {
+            log.info("Horario general creado con los valores por defecto.");
+        } else {
+            log.info("La tabla horario_general ya tiene datos; no se crea el horario por defecto.");
+        }
     }
 
     private void cargarBloques() throws IOException {

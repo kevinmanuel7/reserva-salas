@@ -29,7 +29,8 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Reglas de seguridad de ms-reservas:
  * - Sin sesiones: cada petición se identifica con su token.
- * - Rutas públicas: GET /api/v1/bloques, GET /api/v1/reservas/disponibilidad y Swagger.
+ * - Rutas públicas: GET /api/v1/bloques, GET /api/v1/reservas/disponibilidad,
+ *   GET /api/v1/horario y Swagger.
  * - Todo lo demás exige el token Bearer del usuario.
  */
 @Configuration
@@ -54,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/bloques").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/reservas/disponibilidad").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/horario").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(recurso -> recurso
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
