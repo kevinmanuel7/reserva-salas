@@ -97,6 +97,9 @@ class RepositorioHorarioFalso : RepositorioHorario {
         delay(RETARDO_FALSO_MS)
         _horario.value = horario
     }
+
+    // No hay servidor: no hay nada que volver a pedir.
+    override suspend fun refrescar() {}
 }
 
 class RepositorioReservasFalso(

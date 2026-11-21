@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import cl.duoc.reservasalas.app.ReservaSalasApp
 import cl.duoc.reservasalas.app.data.modelo.HorarioGeneral
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalTime
@@ -68,6 +69,11 @@ fun HorarioGeneralPantalla(
 
     val scope = rememberCoroutineScope()
 
+    // Al abrir la pantalla se pide el horario al servidor (por si otro coordinador lo cambió).
+    LaunchedEffect(Unit) {
+        repo.refrescar()
+    }
+
     val diasSemana = listOf(
         DayOfWeek.MONDAY to "Lun",
         DayOfWeek.TUESDAY to "Mar",
@@ -86,8 +92,8 @@ fun HorarioGeneralPantalla(
         horaApertura != null &&
                 horaCierre != null &&
                 minutosPausa != null &&
-                horaApertura in 0..22 &&
-                horaCierre in 1..23 &&
+                horaApertura in 8..21 &&
+                horaCierre in 8..21 &&
                 horaCierre > horaApertura &&
                 minutosPausa in 0..15 &&
                 dias.isNotEmpty()
@@ -206,7 +212,7 @@ fun HorarioGeneralPantalla(
                                 Text("Apertura")
                             },
                             supportingText = {
-                                Text("Hora de 0 a 22")
+                                Text("Hora de 8 a 21")
                             },
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Number
@@ -228,7 +234,7 @@ fun HorarioGeneralPantalla(
                                 Text("Cierre")
                             },
                             supportingText = {
-                                Text("Hora de 1 a 23")
+                                Text("Hora de 8 a 21")
                             },
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Number
@@ -489,37 +495,26 @@ fun HorarioGeneralPantalla(
 
                 Button(
                     onClick = {
-                        val a = apertura.toIntOrNull()
-                        val c = cierre.toIntOrNull()
-                        val p = pausa.toIntOrNull()
+                        // vistaPrevia solo existe si los datos pasaron la validación de horarioValido.
+                        val nuevo = vistaPrevia
 
-                        if (
-                            a == null ||
-                            c == null ||
-                            p == null ||
-                            a !in 0..22 ||
-                            c !in 1..23 ||
-                            c <= a ||
-                            p !in 0..15 ||
-                            dias.isEmpty()
-                        ) {
-                            error = "Revisa las horas, la pausa (0 a 15 minutos) y los días seleccionados."
+                        if (nuevo == null) {
+                            error = "Revisa los datos: apertura y cierre entre 8 y 21 " +
+                                    "(apertura antes que cierre), pausa de 0 a 15 minutos " +
+                                    "y al menos un día."
                         } else {
                             guardando = true
 
                             scope.launch {
                                 try {
-                                    repo.guardar(
-                                        HorarioGeneral(
-                                            apertura = LocalTime.of(a, 0),
-                                            cierre = LocalTime.of(c, 0),
-                                            pausaMinutos = p,
-                                            dias = dias
-                                        )
-                                    )
+                                    repo.guardar(nuevo)
                                     volver()
+                                } catch (e: CancellationException) {
+                                    throw e
                                 } catch (e: Exception) {
-                                    error = "No se pudo guardar el horario. Inténtalo nuevamente."
+                                    // El repositorio ya trae el mensaje listo (del servidor o "Sin conexión").
+                                    error = e.message
+                                        ?: "No se pudo guardar el horario. Inténtalo nuevamente."
                                 } finally {
                                     guardando = false
                                 }

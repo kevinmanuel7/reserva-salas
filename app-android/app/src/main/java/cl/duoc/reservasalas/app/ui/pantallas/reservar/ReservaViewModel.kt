@@ -36,9 +36,11 @@ class ReservarViewModel(
 
     val reservas: StateFlow<List<Reserva>> = repositorioReservas.reservas
 
-    // Al abrir la pantalla se piden las reservas al servidor (para ver los bloques ocupados).
+    // Al abrir la pantalla se piden las reservas (para ver los bloques ocupados)
+    // y el horario general (por si el coordinador lo cambió).
     init {
         viewModelScope.launch { repositorioReservas.refrescar() }
+        viewModelScope.launch { repositorioHorario.refrescar() }
     }
 
     fun obtenerBloques(sala: Sala, horarioGeneral: HorarioGeneral): List<Bloque> {

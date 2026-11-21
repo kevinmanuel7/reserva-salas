@@ -3,7 +3,6 @@ package cl.duoc.reservasalas.app
 import android.content.Context
 import cl.duoc.reservasalas.app.data.falso.Reloj
 import cl.duoc.reservasalas.app.data.falso.RelojSistema
-import cl.duoc.reservasalas.app.data.falso.RepositorioHorarioFalso
 import cl.duoc.reservasalas.app.data.local.SesionDataStore
 import cl.duoc.reservasalas.app.data.local.sesionDataStore
 import cl.duoc.reservasalas.app.data.remote.UsuariosApi
@@ -20,6 +19,7 @@ import cl.duoc.reservasalas.app.data.remote.TokenInterceptor
 import okhttp3.OkHttpClient
 import cl.duoc.reservasalas.app.data.remote.ReservasApi
 import cl.duoc.reservasalas.app.data.remote.SalasApi
+import cl.duoc.reservasalas.app.data.repository.RepositorioHorarioRemoto
 import cl.duoc.reservasalas.app.data.repository.RepositorioReservasRemoto
 import cl.duoc.reservasalas.app.data.repository.RepositorioSalasRemoto
 
@@ -85,5 +85,5 @@ class AppContainer(context: Context) {
     val repositorioSalas: RepositorioSalas = RepositorioSalasRemoto(salasApi)
     val repositorioReservas: RepositorioReservas =
         RepositorioReservasRemoto(reservasApi, repositorioSalas, reloj, json)
-    val repositorioHorario: RepositorioHorario = RepositorioHorarioFalso()
+    val repositorioHorario: RepositorioHorario = RepositorioHorarioRemoto(reservasApi, json)
 }

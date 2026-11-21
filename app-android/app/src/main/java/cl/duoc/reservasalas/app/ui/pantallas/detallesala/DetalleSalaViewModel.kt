@@ -14,7 +14,9 @@ import cl.duoc.reservasalas.app.data.modelo.Sala
 import cl.duoc.reservasalas.app.data.repository.RepositorioHorario
 import cl.duoc.reservasalas.app.data.repository.RepositorioReservas
 import cl.duoc.reservasalas.app.data.repository.RepositorioSalas
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class DetalleSalaViewModel(
     private val repositorioSalas: RepositorioSalas,
@@ -31,6 +33,11 @@ class DetalleSalaViewModel(
 
     val horario: StateFlow<HorarioGeneral> =
         repositorioHorario.horario
+
+    // Al abrir la pantalla se pide el horario general (por si el coordinador lo cambió).
+    init {
+        viewModelScope.launch { repositorioHorario.refrescar() }
+    }
 
     fun buscarSala(codigo: String): Sala? {
         return salas.value.find {

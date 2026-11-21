@@ -76,4 +76,7 @@ interface RepositorioHorario {
     val horario: StateFlow<HorarioGeneral>
 
     suspend fun guardar(horario: HorarioGeneral)
+
+    /** Vuelve a pedir el horario al servidor. Lo llaman las pantallas al abrirse. */
+    suspend fun refrescar()
 }

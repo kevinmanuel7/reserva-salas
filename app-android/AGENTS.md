@@ -142,8 +142,12 @@ Terminó la etapa maqueta: ahora cada parte de la app se conecta al backend real
 
 ### Conexión con el backend
 - La app usa el backend real mediante los repositorios remotos de `data/repository/`.
-  `RepositorioSalasRemoto` y `RepositorioReservasRemoto` ya existen; horario y perfil se
-  conectan en las próximas tareas (el horario todavía usa `RepositorioHorarioFalso`).
+  `RepositorioSalasRemoto`, `RepositorioReservasRemoto` y `RepositorioHorarioRemoto` ya
+  existen; el perfil se conecta en una próxima tarea.
+- El horario general es remoto (`GET /horario` de ms-reservas, público). Se carga al abrir
+  la app y cada pantalla que lo usa llama a `repositorioHorario.refrescar()` al abrirse
+  (Detalle de sala, Reservar y Horario general). Al guardar una sala, la app envía
+  `usaHorarioGeneral = true` cuando la sala no tiene horario propio (Contrato 1 v9).
 - Los repositorios de `data/falso/` se conservan solo para las pruebas unitarias.
   Ninguna pantalla ni ViewModel nuevo debe depender de ellos.
 - Las reservas no se cargan solas: cada pantalla que las muestra llama a
@@ -251,7 +255,8 @@ Todo esto ya existe. Úsalo, no lo dupliques.
   No repitas esas reglas dentro de un ViewModel: llama a estas funciones.
 - **Repositorios**: las interfaces están en `data/repository/Repositorios.kt` (RepositorioSalas,
   RepositorioReservas, RepositorioHorario, RepositorioAutenticacion). Las implementaciones remotas,
-  en `data/repository/` (`AuthRepository`, `RepositorioSalasRemoto`, `RepositorioReservasRemoto`);
+  en `data/repository/` (`AuthRepository`, `RepositorioSalasRemoto`, `RepositorioReservasRemoto`,
+  `RepositorioHorarioRemoto`);
   las falsas, en `data/falso/`
   solo para pruebas.
 - **Hora actual**: NUNCA usar `LocalDateTime.now()` ni `LocalDate.now()`. Usar `container.reloj.ahora()`

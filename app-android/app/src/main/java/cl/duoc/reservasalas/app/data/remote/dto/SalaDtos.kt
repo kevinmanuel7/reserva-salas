@@ -49,7 +49,9 @@ data class ActualizarSalaPeticionDto(
     val ubicacion: String? = null,
     val horaApertura: String? = null,
     val horaCierre: String? = null,
-    val equipos: List<EquipoDto>? = null
+    val equipos: List<EquipoDto>? = null,
+    // Versión 9: con true, el servidor deja la sala sin horario propio (usa el general).
+    val usaHorarioGeneral: Boolean? = null
 )
 /** Convierte la sala del servidor en la sala que usan las pantallas. */
 fun SalaDto.aModelo(): Sala = Sala(
@@ -90,5 +92,7 @@ fun Sala.aPeticion(original: SalaDto): ActualizarSalaPeticionDto = ActualizarSal
     ubicacion = ubicacion,
     horaApertura = horarioPropio?.apertura?.toString(),
     horaCierre = horarioPropio?.cierre?.toString(),
-    equipos = equipos.map { EquipoDto(it.nombre, it.estado.name, it.comentario) }
+    equipos = equipos.map { EquipoDto(it.nombre, it.estado.name, it.comentario) },
+    // Sin horario propio, la sala vuelve al horario general.
+    usaHorarioGeneral = horarioPropio == null
 )

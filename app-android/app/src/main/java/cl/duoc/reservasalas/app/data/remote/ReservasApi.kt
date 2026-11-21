@@ -1,6 +1,7 @@
 package cl.duoc.reservasalas.app.data.remote
 
 import cl.duoc.reservasalas.app.data.remote.dto.CrearReservaPeticionDto
+import cl.duoc.reservasalas.app.data.remote.dto.HorarioDto
 import cl.duoc.reservasalas.app.data.remote.dto.ReservaDto
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -11,7 +12,7 @@ import retrofit2.http.Query
 
 /**
  * Endpoints de ms-reservas. La URL base (BuildConfig.URL_MS_RESERVAS) se configura en AppContainer.
- * Todos piden token: lo agrega TokenInterceptor.
+ * Todos piden token (salvo GET horario): lo agrega TokenInterceptor.
  */
 interface ReservasApi {
 
@@ -38,4 +39,12 @@ interface ReservasApi {
     // Solo coordinador.
     @PUT("reservas/{id}/no-presentado")
     suspend fun marcarNoPresentado(@Path("id") id: Long): ReservaDto
+
+    // GET .../api/v1/horario → el horario general. Público: funciona sin sesión.
+    @GET("horario")
+    suspend fun obtenerHorario(): HorarioDto
+
+    // PUT .../api/v1/horario → el horario guardado (o error 400/403). Solo coordinador.
+    @PUT("horario")
+    suspend fun actualizarHorario(@Body horario: HorarioDto): HorarioDto
 }
