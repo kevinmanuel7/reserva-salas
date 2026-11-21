@@ -40,7 +40,7 @@ cl.duoc.reservasalas.app/
 ├── model/            ← Usuario, Rol y Sesion (los del login)
 ├── data/
 │   ├── modelo/       ← Sala, Equipo, Bloque, HorarioGeneral, Reserva y formatos
-│   ├── local/        ← DataStore de la sesión (y Room cuando se agregue)
+│   ├── local/        ← DataStore de la sesión y del perfil (foto), archivos de la foto (y Room cuando se agregue)
 │   ├── remote/       ← interfaces de Retrofit, TokenInterceptor y dto/ (JSON del backend)
 │   ├── repository/   ← interfaces de repositorios y repositorios remotos: único punto
 │   │                   desde donde los ViewModel piden datos
@@ -141,9 +141,20 @@ Antes de dar una tarea por terminada, `.\gradlew.bat assembleDebug` y
 Terminó la etapa maqueta: ahora cada parte de la app se conecta al backend real.
 
 ### Conexión con el backend
-- La app usa el backend real mediante los repositorios remotos de `data/repository/`.
-  `RepositorioSalasRemoto`, `RepositorioReservasRemoto` y `RepositorioHorarioRemoto` ya
-  existen; el perfil se conecta en una próxima tarea.
+- La app usa el backend real mediante los repositorios remotos de `data/repository/`:
+  `RepositorioSalasRemoto`, `RepositorioReservasRemoto`, `RepositorioHorarioRemoto` y
+  `RepositorioPerfilRemoto`.
+- **Perfil: qué es remoto y qué es local.**
+  - Remoto (ms-usuarios, Contrato 1 v8 y v10, vía `RepositorioPerfil`): fecha de nacimiento,
+    teléfono, área y contraseña. Nombre, email y rol solo se muestran: no se editan.
+    `PerfilViewModel` valida antes de enviar (mayor de 18, celular "+569" + 8 dígitos, área de
+    `data/modelo/Areas.kt`, contraseña nueva de 8 o más caracteres) y envía solo lo que cambió.
+  - Local (solo en el teléfono, no sube al servidor): la foto de perfil. El archivo va en
+    `filesDir/foto_perfil_<idUsuario>.jpg` (reducido a 512 px) y su ruta en el DataStore
+    **"perfil"** (`data/local/PerfilDataStore.kt`), separado de "sesion" para que cerrar sesión
+    no la borre. Los archivos los maneja `data/local/AlmacenFotoPerfil.kt`.
+- Supervisar reserva pide el relator con `repositorioPerfil.obtenerUsuario(id)` (solo
+  coordinador) para mostrar su teléfono y área, con el botón "Llamar" (`Intent.ACTION_DIAL`).
 - El horario general es remoto (`GET /horario` de ms-reservas, público). Se carga al abrir
   la app y cada pantalla que lo usa llama a `repositorioHorario.refrescar()` al abrirse
   (Detalle de sala, Reservar y Horario general). Al guardar una sala, la app envía
@@ -254,9 +265,9 @@ Todo esto ya existe. Úsalo, no lo dupliques.
   mostrarRecordatorio y ocupa(bloque). Los bloques de una sala: `sala.bloques(horarioGeneral)`.
   No repitas esas reglas dentro de un ViewModel: llama a estas funciones.
 - **Repositorios**: las interfaces están en `data/repository/Repositorios.kt` (RepositorioSalas,
-  RepositorioReservas, RepositorioHorario, RepositorioAutenticacion). Las implementaciones remotas,
-  en `data/repository/` (`AuthRepository`, `RepositorioSalasRemoto`, `RepositorioReservasRemoto`,
-  `RepositorioHorarioRemoto`);
+  RepositorioReservas, RepositorioHorario, RepositorioPerfil, RepositorioAutenticacion). Las
+  implementaciones remotas, en `data/repository/` (`AuthRepository`, `RepositorioSalasRemoto`,
+  `RepositorioReservasRemoto`, `RepositorioHorarioRemoto`, `RepositorioPerfilRemoto`);
   las falsas, en `data/falso/`
   solo para pruebas.
 - **Hora actual**: NUNCA usar `LocalDateTime.now()` ni `LocalDate.now()`. Usar `container.reloj.ahora()`

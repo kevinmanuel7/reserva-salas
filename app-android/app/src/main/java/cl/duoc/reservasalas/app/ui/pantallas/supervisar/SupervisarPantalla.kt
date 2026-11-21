@@ -21,6 +21,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import cl.duoc.reservasalas.app.ReservaSalasApp
 import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
+import cl.duoc.reservasalas.app.model.PerfilUsuario
+import cl.duoc.reservasalas.app.ui.componentes.BotonSecundario
+import cl.duoc.reservasalas.app.ui.theme.Gris85
+import cl.duoc.reservasalas.app.ui.theme.NegroDuoc
+import android.content.Intent
+import android.net.Uri
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -65,6 +71,24 @@ fun SupervisarPantalla(
     // Al abrir la pantalla se piden las reservas al servidor (así se ve el check-in del relator).
     LaunchedEffect(Unit) {
         repo.refrescar()
+    }
+
+    // Datos del relator (email, teléfono y área) desde ms-usuarios. null = todavía no llegan o falló.
+    var relator by remember {
+        mutableStateOf<PerfilUsuario?>(null)
+    }
+
+    // Se pide cuando se conoce el id del relator (la reserva puede llegar después del refrescar).
+    LaunchedEffect(reserva?.idUsuario) {
+        val idUsuario = reserva?.idUsuario ?: return@LaunchedEffect
+        relator = try {
+            app.container.repositorioPerfil.obtenerUsuario(idUsuario)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Sin conexión o sin permiso: se deja el texto que ya tenía la tarjeta.
+            null
+        }
     }
 
     val ahora = app.container.reloj.ahora()
@@ -168,10 +192,9 @@ fun SupervisarPantalla(
                                     color = TextoSupervisar
                                 )
 
-                                Text(
-                                    text = reserva.emailUsuario,
-                                    fontSize = 14.sp,
-                                    color = GrisSupervisar
+                                ContactoRelator(
+                                    relator = relator,
+                                    textoSinDatos = reserva.emailUsuario
                                 )
                             }
 
@@ -418,6 +441,60 @@ fun SupervisarPantalla(
                 }
             }
         )
+    }
+}
+
+/**
+ * Email, teléfono y área del relator. Con teléfono, el botón "Llamar" abre el marcador del
+ * teléfono con el número escrito (ACTION_DIAL no llama solo, por eso no necesita permiso).
+ * Si los datos no llegaron, muestra [textoSinDatos] como antes.
+ */
+@Composable
+private fun ContactoRelator(
+    relator: PerfilUsuario?,
+    textoSinDatos: String
+) {
+    val contexto = LocalContext.current
+
+    if (relator == null) {
+        Text(text = textoSinDatos, fontSize = 14.sp, color = Gris85)
+        return
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(text = relator.usuario.email, fontSize = 14.sp, color = Gris85)
+        Text(text = relator.area ?: "Sin área registrada", fontSize = 14.sp, color = Gris85)
+
+        val telefono = relator.telefono
+        if (telefono == null) {
+            Text(text = "Sin teléfono registrado", fontSize = 14.sp, color = Gris85)
+        } else {
+            Text(
+                text = formatearTelefono(telefono),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = NegroDuoc
+            )
+            BotonSecundario(
+                texto = "Llamar",
+                alPresionar = {
+                    contexto.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$telefono")))
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp)
+            )
+        }
+    }
+}
+
+/** "+56912345678" → "+56 9 1234 5678". Si no tiene ese formato, lo deja igual. */
+private fun formatearTelefono(telefono: String): String {
+    val digitos = telefono.removePrefix("+569")
+    return if (telefono.startsWith("+569") && digitos.length == 8) {
+        "+56 9 ${digitos.take(4)} ${digitos.drop(4)}"
+    } else {
+        telefono
     }
 }
 

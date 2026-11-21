@@ -3,6 +3,8 @@ package cl.duoc.reservasalas.app.data.repository
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import cl.duoc.reservasalas.app.data.local.SesionDataStore
 import cl.duoc.reservasalas.app.data.remote.UsuariosApi
+import cl.duoc.reservasalas.app.data.remote.dto.ActualizarPerfilPeticionDto
+import cl.duoc.reservasalas.app.data.remote.dto.CambiarPasswordPeticionDto
 import cl.duoc.reservasalas.app.data.remote.dto.LoginPeticionDto
 import cl.duoc.reservasalas.app.data.remote.dto.LoginRespuestaDto
 import cl.duoc.reservasalas.app.data.remote.dto.UsuarioDto
@@ -45,6 +47,14 @@ class AuthRepositoryTest {
             error?.let { throw it }
             return respuesta!!
         }
+
+        // El login no usa los endpoints del perfil: si alguno se llamara, la prueba falla.
+        override suspend fun obtenerPerfil(): UsuarioDto = TODO("No se usa en estas pruebas")
+        override suspend fun actualizarPerfil(peticion: ActualizarPerfilPeticionDto): UsuarioDto =
+            TODO("No se usa en estas pruebas")
+        override suspend fun cambiarPassword(peticion: CambiarPasswordPeticionDto): Response<Unit> =
+            TODO("No se usa en estas pruebas")
+        override suspend fun obtenerUsuario(id: Int): UsuarioDto = TODO("No se usa en estas pruebas")
     }
 
     @get:Rule

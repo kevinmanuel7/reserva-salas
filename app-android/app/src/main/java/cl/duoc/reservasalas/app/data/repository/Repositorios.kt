@@ -5,6 +5,7 @@ import cl.duoc.reservasalas.app.data.modelo.Bloque
 import cl.duoc.reservasalas.app.data.modelo.HorarioGeneral
 import cl.duoc.reservasalas.app.data.modelo.Reserva
 import cl.duoc.reservasalas.app.data.modelo.Sala
+import cl.duoc.reservasalas.app.model.PerfilUsuario
 import cl.duoc.reservasalas.app.model.Usuario
 import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDate
@@ -70,6 +71,31 @@ interface RepositorioReservas {
 
     /** Vuelve a pedir las reservas al servidor. Lo llaman las pantallas al abrirse. */
     suspend fun refrescar()
+}
+
+/**
+ * Perfil del usuario en ms-usuarios (Contrato 1 v8 y v10).
+ * Si algo falla, cada función lanza una excepción cuyo message ya está listo para mostrar.
+ */
+interface RepositorioPerfil {
+    /** GET /usuarios/me: el usuario conectado. */
+    suspend fun obtenerPerfil(): PerfilUsuario
+
+    /** PUT /usuarios/me. Un parámetro null conserva el valor guardado en el servidor. */
+    suspend fun actualizarPerfil(
+        fechaNacimiento: LocalDate?,
+        telefono: String?,
+        area: String?
+    ): PerfilUsuario
+
+    /** PUT /usuarios/me/password. */
+    suspend fun cambiarPassword(
+        passwordActual: String,
+        passwordNueva: String
+    )
+
+    /** GET /usuarios/{id}: solo coordinador. */
+    suspend fun obtenerUsuario(id: Int): PerfilUsuario
 }
 
 interface RepositorioHorario {

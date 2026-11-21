@@ -22,6 +22,12 @@ import cl.duoc.reservasalas.app.data.remote.SalasApi
 import cl.duoc.reservasalas.app.data.repository.RepositorioHorarioRemoto
 import cl.duoc.reservasalas.app.data.repository.RepositorioReservasRemoto
 import cl.duoc.reservasalas.app.data.repository.RepositorioSalasRemoto
+import cl.duoc.reservasalas.app.data.local.AlmacenFotoPerfil
+import cl.duoc.reservasalas.app.data.local.AlmacenFotoPerfilArchivos
+import cl.duoc.reservasalas.app.data.local.PerfilDataStore
+import cl.duoc.reservasalas.app.data.local.perfilDataStore
+import cl.duoc.reservasalas.app.data.repository.RepositorioPerfil
+import cl.duoc.reservasalas.app.data.repository.RepositorioPerfilRemoto
 
 /**
  * Inyección de dependencias manual: aquí se crea cada objeto una sola vez
@@ -86,4 +92,10 @@ class AppContainer(context: Context) {
     val repositorioReservas: RepositorioReservas =
         RepositorioReservasRemoto(reservasApi, repositorioSalas, reloj, json)
     val repositorioHorario: RepositorioHorario = RepositorioHorarioRemoto(reservasApi, json)
+
+    // Perfil: los datos (fecha, teléfono, área, contraseña) viven en ms-usuarios;
+    // la foto vive solo en el teléfono (DataStore "perfil" + memoria interna).
+    val repositorioPerfil: RepositorioPerfil = RepositorioPerfilRemoto(usuariosApi, json)
+    val perfilDataStore = PerfilDataStore(context.perfilDataStore)
+    val almacenFotoPerfil: AlmacenFotoPerfil = AlmacenFotoPerfilArchivos(context)
 }

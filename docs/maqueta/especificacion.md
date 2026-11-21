@@ -126,7 +126,10 @@ Se rescata la pantalla y el ViewModel que ya existen y se adaptan al nuevo dise�
 
 ### 3. Perfil (ruta: perfil)
 
-- Tarjeta con círculo de iniciales (fondo amarillo, letras negras), nombre completo, correo y chip con el rol ("Relator" o "Coordinador").
+- Tarjeta con círculo de iniciales (fondo amarillo, letras negras), nombre completo, correo y chip con el rol ("Relator" o "Coordinador"). Nombre, correo y rol no se editan.
+- Etapa integración (Contrato 1 v10): el círculo se puede tocar para "Tomar foto", "Elegir de la galería" o "Quitar foto". La foto se guarda solo en el teléfono; sin foto se ven las iniciales.
+- Sección "Mis datos": fecha de nacimiento (calendario), teléfono (campo numérico con "+56 9" fijo y 8 dígitos) y área (menú con las áreas de Duoc UC), con BotonPrincipal "Guardar cambios", mensaje de éxito y mensaje de error con ícono.
+- En "Cuenta", una fila "Cambiar contraseña" que abre un diálogo con contraseña actual, nueva y confirmación (campos ocultos).
 - Sección "Mi actividad" con dos TarjetaMetrica: reservas este mes y check-in realizados.
 - Solo coordinador: botón de lista "Horario general de bloques" con flecha, que lleva a horarioGeneral.
 - Texto informativo: "Sede Viña del Mar · Datos ficticios con fines académicos".
@@ -272,6 +275,7 @@ Es el ítem "Reservas" de la barra inferior del coordinador.
 ### 4. Supervisar reserva (ruta: supervisar/{idReserva}) · deseable
 
 - Tarjeta con sala, horario, relator (nombre y correo), motivo y ChipEstado.
+- Etapa integración (Contrato 1 v10): bajo el relator se muestran su área y su teléfono, con BotonSecundario "Llamar" que abre el marcador del teléfono. Si no tiene teléfono: "Sin teléfono registrado".
 - Línea de tiempo simple: Reservada → Check-in (con hora, o "pendiente") → Verificada.
 - Si está En uso: BotonPrincipal "Marcar como verificada" (fui a la sala y se está usando). El estado pasa a Verificada.
 - Si está sin check-in: BotonPeligro "Marcar no presentado" con diálogo de confirmación. El estado pasa a No presentado. La sala no se libera.
