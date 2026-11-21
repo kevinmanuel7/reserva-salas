@@ -142,14 +142,13 @@ Terminó la etapa maqueta: ahora cada parte de la app se conecta al backend real
 
 ### Conexión con el backend
 - La app usa el backend real mediante los repositorios remotos de `data/repository/`.
-  `RepositorioSalasRemoto` ya existe; reservas, horario y perfil se conectan en las
-  próximas tareas.
+  `RepositorioSalasRemoto` y `RepositorioReservasRemoto` ya existen; horario y perfil se
+  conectan en las próximas tareas (el horario todavía usa `RepositorioHorarioFalso`).
 - Los repositorios de `data/falso/` se conservan solo para las pruebas unitarias.
   Ninguna pantalla ni ViewModel nuevo debe depender de ellos.
-- **Transición (mientras se conectan reservas y horario):** `AppContainer.kt` todavía
-  tiene `usarDatosFalsos = true`, por eso el reloj sigue siendo `RelojMaqueta` y
-  reservas y horario siguen usando `RepositorioReservasFalso` y `RepositorioHorarioFalso`.
-  Al conectar esos repositorios se cambia a `false` y se borra esta nota.
+- Las reservas no se cargan solas: cada pantalla que las muestra llama a
+  `repositorioReservas.refrescar()` al abrirse (en el `init` de su ViewModel o con
+  `LaunchedEffect`).
 - Las URL base se definen en `app/build.gradle.kts` como BuildConfig: `URL_MS_USUARIOS`,
   `URL_MS_SALAS` y `URL_MS_RESERVAS`. En desarrollo apuntan a `localhost` con
   `adb reverse` (ver sección 4); en la entrega las tres apuntan a
@@ -252,11 +251,11 @@ Todo esto ya existe. Úsalo, no lo dupliques.
   No repitas esas reglas dentro de un ViewModel: llama a estas funciones.
 - **Repositorios**: las interfaces están en `data/repository/Repositorios.kt` (RepositorioSalas,
   RepositorioReservas, RepositorioHorario, RepositorioAutenticacion). Las implementaciones remotas,
-  en `data/repository/` (`AuthRepository`, `RepositorioSalasRemoto`); las falsas, en `data/falso/`
+  en `data/repository/` (`AuthRepository`, `RepositorioSalasRemoto`, `RepositorioReservasRemoto`);
+  las falsas, en `data/falso/`
   solo para pruebas.
 - **Hora actual**: NUNCA usar `LocalDateTime.now()` ni `LocalDate.now()`. Usar `container.reloj.ahora()`
-  y `container.reloj.hoy()`. Se usa `RelojSistema` (la hora real del teléfono); ver la nota de
-  transición en «Conexión con el backend».
+  y `container.reloj.hoy()`. Se usa `RelojSistema` (la hora real del teléfono).
 - **Usuario conectado**: `container.sesionDataStore.sesion` (Flow con la sesión; `sesion?.usuario`).
 - **Cómo un ViewModel obtiene sus datos**: igual que `ui/pantallas/perfil/PerfilViewModel.kt`, con un
   `Factory` que saca los repositorios de `(this[APPLICATION_KEY] as ReservaSalasApp).container`.

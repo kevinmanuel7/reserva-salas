@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class AgendaViewModel(
     repositorioReservas: RepositorioReservas,
@@ -35,6 +36,11 @@ class AgendaViewModel(
             started = SharingStarted.Eagerly,
             initialValue = null
         )
+
+    // Al abrir la pantalla se piden las reservas al servidor.
+    init {
+        viewModelScope.launch { repositorioReservas.refrescar() }
+    }
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {

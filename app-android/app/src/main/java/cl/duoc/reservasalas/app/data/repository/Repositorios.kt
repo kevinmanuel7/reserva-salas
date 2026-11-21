@@ -67,6 +67,9 @@ interface RepositorioReservas {
     suspend fun marcarVerificada(id: Int)
 
     suspend fun marcarNoPresentado(id: Int)
+
+    /** Vuelve a pedir las reservas al servidor. Lo llaman las pantallas al abrirse. */
+    suspend fun refrescar()
 }
 
 interface RepositorioHorario {

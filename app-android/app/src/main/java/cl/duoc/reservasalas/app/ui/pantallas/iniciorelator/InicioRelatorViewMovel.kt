@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 import java.time.LocalDate
 
@@ -86,6 +87,11 @@ class InicioRelatorViewModel(
             SharingStarted.WhileSubscribed(5_000),
             InicioRelatorUiState()
         )
+
+    // Al abrir la pantalla se piden las reservas al servidor.
+    init {
+        viewModelScope.launch { repositorioReservas.refrescar() }
+    }
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {

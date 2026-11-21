@@ -44,6 +44,11 @@ fun InicioCoordinadorPantalla(
     val reservas by app.container.repositorioReservas.reservas.collectAsState()
     val salas by app.container.repositorioSalas.salas.collectAsState()
 
+    // Al abrir la pantalla se piden las reservas al servidor (una vez por apertura).
+    LaunchedEffect(Unit) {
+        app.container.repositorioReservas.refrescar()
+    }
+
     val ahora = app.container.reloj.ahora()
     val hoy = ahora.toLocalDate()
     val horaActual = ahora.toLocalTime()

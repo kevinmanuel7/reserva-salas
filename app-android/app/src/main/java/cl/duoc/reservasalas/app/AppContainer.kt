@@ -2,10 +2,8 @@ package cl.duoc.reservasalas.app
 
 import android.content.Context
 import cl.duoc.reservasalas.app.data.falso.Reloj
-import cl.duoc.reservasalas.app.data.falso.RelojMaqueta
 import cl.duoc.reservasalas.app.data.falso.RelojSistema
 import cl.duoc.reservasalas.app.data.falso.RepositorioHorarioFalso
-import cl.duoc.reservasalas.app.data.falso.RepositorioReservasFalso
 import cl.duoc.reservasalas.app.data.local.SesionDataStore
 import cl.duoc.reservasalas.app.data.local.sesionDataStore
 import cl.duoc.reservasalas.app.data.remote.UsuariosApi
@@ -20,7 +18,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import cl.duoc.reservasalas.app.data.remote.TokenInterceptor
 import okhttp3.OkHttpClient
+import cl.duoc.reservasalas.app.data.remote.ReservasApi
 import cl.duoc.reservasalas.app.data.remote.SalasApi
+import cl.duoc.reservasalas.app.data.repository.RepositorioReservasRemoto
 import cl.duoc.reservasalas.app.data.repository.RepositorioSalasRemoto
 
 /**
@@ -31,16 +31,10 @@ import cl.duoc.reservasalas.app.data.repository.RepositorioSalasRemoto
  */
 class AppContainer(context: Context) {
 
-    /**
-     * Etapa maqueta (hasta el 28 de octubre): true = toda la app usa datos falsos, sin red.
-     * Para conectar el backend se cambia a false y se agregan los repositorios reales.
-     */
-    private val usarDatosFalsos = true
-
     // ignoreUnknownKeys: si el servidor agrega campos nuevos, la app no falla.
     private val json = Json { ignoreUnknownKeys = true }
 
-    // "by lazy": se crea la primera vez que alguien lo usa. En la maqueta nadie lo usa, así que no hay red.
+    // "by lazy": se crea la primera vez que alguien lo usa.
 
     // Cliente HTTP compartido: todas las peticiones pasan por TokenInterceptor.
     private val clienteHttp: OkHttpClient by lazy {
@@ -67,18 +61,29 @@ class AppContainer(context: Context) {
             .create(SalasApi::class.java)
     }
 
+    // Endpoints de ms-reservas (puerto 8083 en local). Todos llevan el token.
+    private val reservasApi: ReservasApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BuildConfig.URL_MS_RESERVAS)
+            .client(clienteHttp)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(ReservasApi::class.java)
+    }
+
     val sesionDataStore = SesionDataStore(context.sesionDataStore)
 
     private val authRepository: AuthRepository by lazy {
         AuthRepository(usuariosApi, sesionDataStore, json)
     }
 
-    /** "Ahora" de la app. En la maqueta siempre son las 09:55 de hoy (ver RelojMaqueta). */
-    val reloj: Reloj = if (usarDatosFalsos) RelojMaqueta() else RelojSistema()
+    /** "Ahora" de la app: la hora real del teléfono. */
+    val reloj: Reloj = RelojSistema()
 
     val repositorioAutenticacion: RepositorioAutenticacion = authRepository
 
     val repositorioSalas: RepositorioSalas = RepositorioSalasRemoto(salasApi)
-    val repositorioReservas: RepositorioReservas = RepositorioReservasFalso(reloj)
+    val repositorioReservas: RepositorioReservas =
+        RepositorioReservasRemoto(reservasApi, repositorioSalas, reloj, json)
     val repositorioHorario: RepositorioHorario = RepositorioHorarioFalso()
 }

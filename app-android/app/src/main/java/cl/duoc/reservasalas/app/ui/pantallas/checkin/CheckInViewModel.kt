@@ -15,6 +15,7 @@ import androidx.core.content.FileProvider
 import java.io.File
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -84,9 +85,17 @@ class CheckInViewModel(
         }
 
         viewModelScope.launch {
-            repositorioReservas.registrarCheckIn(reserva.id, ahora.toLocalTime())
-            _uiState.update { estadoActual ->
-                estadoActual.copy(estado = EstadoCheckIn.Exito(ahora.toLocalTime()))
+            try {
+                repositorioReservas.registrarCheckIn(reserva.id, ahora.toLocalTime())
+                // Se muestra la hora que guardó el servidor (hora de Chile).
+                val hora = repositorioReservas.buscar(reserva.id)?.horaCheckIn ?: ahora.toLocalTime()
+                _uiState.update { estadoActual ->
+                    estadoActual.copy(estado = EstadoCheckIn.Exito(hora))
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                mostrarError(e.message ?: "No se pudo registrar el check-in. Intenta de nuevo.")
             }
         }
     }

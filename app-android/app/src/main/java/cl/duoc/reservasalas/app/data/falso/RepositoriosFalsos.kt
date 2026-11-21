@@ -233,6 +233,9 @@ class RepositorioReservasFalso(
             }
         }
 
+    override suspend fun refrescar() {
+    }
+
     private suspend fun cambiar(
         id: Int,
         cambio: (Reserva) -> Reserva

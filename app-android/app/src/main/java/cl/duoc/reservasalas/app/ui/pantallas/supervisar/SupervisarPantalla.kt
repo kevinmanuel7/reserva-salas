@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import cl.duoc.reservasalas.app.ReservaSalasApp
 import cl.duoc.reservasalas.app.data.modelo.EstadoReserva
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -54,6 +55,16 @@ fun SupervisarPantalla(
 
     var confirmarAusencia by remember {
         mutableStateOf(false)
+    }
+
+    // Mensaje si falla verificar o marcar no presentado. null = sin error.
+    var mensajeError by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    // Al abrir la pantalla se piden las reservas al servidor (así se ve el check-in del relator).
+    LaunchedEffect(Unit) {
+        repo.refrescar()
     }
 
     val ahora = app.container.reloj.ahora()
@@ -290,12 +301,29 @@ fun SupervisarPantalla(
                         .fillMaxWidth()
                         .padding(16.dp)
                 ) {
+                    if (mensajeError != null) {
+                        Text(
+                            text = mensajeError ?: "",
+                            color = RojoSupervisar,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
                     if (reserva.estado == EstadoReserva.EN_USO) {
                         Button(
                             onClick = {
                                 scope.launch {
-                                    repo.marcarVerificada(idReserva)
-                                    volver()
+                                    mensajeError = null
+                                    try {
+                                        repo.marcarVerificada(idReserva)
+                                        volver()
+                                    } catch (e: CancellationException) {
+                                        throw e
+                                    } catch (e: Exception) {
+                                        mensajeError = e.message
+                                            ?: "No se pudo verificar la reserva"
+                                    }
                                 }
                             },
                             modifier = Modifier
@@ -361,8 +389,16 @@ fun SupervisarPantalla(
                         confirmarAusencia = false
 
                         scope.launch {
-                            repo.marcarNoPresentado(idReserva)
-                            volver()
+                            mensajeError = null
+                            try {
+                                repo.marcarNoPresentado(idReserva)
+                                volver()
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                mensajeError = e.message
+                                    ?: "No se pudo marcar como no presentado"
+                            }
                         }
                     }
                 ) {

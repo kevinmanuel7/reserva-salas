@@ -44,6 +44,11 @@ fun ReservasDiaPantalla(
     val app = LocalContext.current.applicationContext as ReservaSalasApp
     val reservas by app.container.repositorioReservas.reservas.collectAsState()
 
+    // Al abrir la pantalla se piden las reservas al servidor (así se ven los check-in nuevos).
+    LaunchedEffect(Unit) {
+        app.container.repositorioReservas.refrescar()
+    }
+
     var dia by remember {
         mutableStateOf(app.container.reloj.hoy())
     }

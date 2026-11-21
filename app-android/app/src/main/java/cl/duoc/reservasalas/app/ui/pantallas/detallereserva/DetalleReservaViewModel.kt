@@ -35,6 +35,11 @@ class DetalleReservaViewModel(
     private val _errorCancelacion = MutableStateFlow<String?>(null)
     val errorCancelacion: StateFlow<String?> = _errorCancelacion.asStateFlow()
 
+    // Al abrir la pantalla se piden las reservas al servidor.
+    init {
+        viewModelScope.launch { repositorioReservas.refrescar() }
+    }
+
     fun sePuedeCancelar(reserva: Reserva): Boolean =
         reserva.sePuedeCancelar(reloj.ahora())
 
