@@ -40,7 +40,7 @@ cl.duoc.reservasalas.app/
 ├── model/            ← Usuario, Rol y Sesion (los del login)
 ├── data/
 │   ├── modelo/       ← Sala, Equipo, Bloque, HorarioGeneral, Reserva y formatos
-│   ├── local/        ← DataStore de la sesión y del perfil (foto), archivos de la foto (y Room cuando se agregue)
+│   ├── local/        ← DataStore de la sesión, del perfil (foto) y de los recordatorios, archivos de la foto (y Room cuando se agregue)
 │   ├── remote/       ← interfaces de Retrofit, TokenInterceptor y dto/ (JSON del backend)
 │   ├── repository/   ← interfaces de repositorios y repositorios remotos: único punto
 │   │                   desde donde los ViewModel piden datos
@@ -51,7 +51,7 @@ cl.duoc.reservasalas.app/
 │   ├── navegacion/   ← rutas y NavHost (incluye la barra inferior)
 │   └── theme/        ← colores, tipografía y formas
 ├── ui/screens/ y viewmodel/ ← pantalla y ViewModel del login
-└── notifications/    ← recordatorios locales (todavía no existe; Fase 6 del plan)
+└── notificaciones/   ← recordatorio local 15 minutos antes de cada reserva (AlarmManager)
 ```
 
 Reglas de MVVM:
@@ -99,10 +99,65 @@ Reglas de MVVM:
 
 ## 5. Recordatorios y funcionalidades pendientes
 
-- **Recordatorio:** notificación local, programada en el teléfono, 15 minutos antes
-  del inicio de cada reserva (sala, horario y actividad). Se elimina si la reserva se
-  cancela. Se usa WorkManager o AlarmManager (ver Fase 6 del plan). Desde Android 13
-  se pide el permiso de notificaciones.
+- **Recordatorio** (segundo recurso nativo de la pauta): notificación local, programada en
+  el teléfono con **AlarmManager** (alarma exacta, sin librerías extra), `Reserva.MINUTOS_RECORDATORIO`
+  minutos antes del inicio de cada reserva. Funciona aunque la app esté cerrada.
+  - **Por qué AlarmManager y no WorkManager:** en el teléfono de prueba (Android 12) las tareas de
+    WorkManager quedaban en ENQUEUED y no se ejecutaban a la hora (WorkManager no garantiza la hora
+    y el fabricante las atrasa). Una alarma exacta suena a la hora pedida.
+  - **Por qué `setAlarmClock` y no `setExactAndAllowWhileIdle`:** en el mismo teléfono (OPPO,
+    ColorOS) `canScheduleExactAlarms()` daba true y la app pedía `setExactAndAllowWhileIdle` sin
+    error, pero ColorOS la convertía en inexacta (`dumpsys alarm`: `windowLength 3600000`, una
+    ventana de 1 hora). `setAlarmClock` es la alarma tipo despertador: ningún sistema la atrasa
+    (`windowLength 0`). Efecto visible: ícono de reloj en la barra de estado mientras haya un
+    recordatorio pendiente, y "próxima alarma" en la pantalla de bloqueo; al tocarla abre la app.
+  - **Cuándo:** solo reservas del usuario con sesión, en estado RESERVADA y cuyo aviso
+    (`Reserva.momentoRecordatorio`) todavía no llega: regla `Reserva.necesitaRecordatorio(ahora)`.
+  - **Contenido:** título "Tu reserva empieza en 15 minutos" y texto
+    "Sala 101 · 10:05–11:00 · Excel intermedio" (sala, horario y actividad). Al tocarla abre la app.
+    Canal "Recordatorios de reservas", creado en `ReservaSalasApp.onCreate`.
+  - **Archivos** (paquete `notificaciones/`):
+    - `CanalRecordatorios.kt`: constantes, creación del canal, `textoRecordatorio(...)` e
+      `intentAbrirApp(...)` (abre `MainActivity`; lo usan la notificación y `setAlarmClock`).
+    - `PermisoAlarmasExactas.kt`: `puedeProgramarAlarmasExactas(context)` (true en Android 11 o
+      menos, o si `canScheduleExactAlarms()`) e `intentPermisoAlarmasExactas(context)`
+      (`Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM` con el paquete de la app).
+    - `RecordatorioReceiver.kt`: `BroadcastReceiver` que despierta la alarma y muestra la
+      notificación. Sin permiso, no hace nada. Registrado en el manifiesto con `exported="false"`.
+    - `ProgramadorRecordatorios.kt`: interfaz (`programar`, `cancelar`, `cancelarTodos`) y su
+      versión con alarmas, `ProgramadorRecordatoriosAlarmas`: un `PendingIntent` por reserva
+      (`requestCode` = id de la reserva, `FLAG_IMMUTABLE | FLAG_UPDATE_CURRENT`) hacia
+      `RecordatorioReceiver`, con el id y el texto como extras. Usa `setAlarmClock(...)`; si en
+      Android 12 o superior `canScheduleExactAlarms()` es false (o lanza `SecurityException`), usa
+      `setAndAllowWhileIdle` (puede atrasarse hasta una hora).
+    - `data/local/RecordatoriosDataStore.kt`: DataStore **"recordatorios"** con los ids programados.
+      AlarmManager no puede listar las alarmas de la app, así que `cancelarTodos()` los lee de ahí.
+    - `SincronizadorRecordatorios.kt`: observa `repositorioReservas.reservas` y la sesión; programa
+      las que cumplen la regla y borra las que dejaron de estar RESERVADA (cancelada, check-in, no
+      presentado). Una reserva que solo no aparece en la lista no se borra. Se inicia una vez en
+      `ReservaSalasApp`. No usa Android: se prueba con un programador falso
+      (`SincronizadorRecordatoriosTest`). `reprogramarTodo()` vuelve a programar todas las
+      reservas que necesitan aviso con la última lista y sesión recibidas (`@Synchronized`).
+  - **Cerrar sesión** (`PerfilViewModel.cerrarSesion`) llama `cancelarTodos()`. Si la sesión
+    queda en null por otra causa (ej. 401), el sincronizador también borra todo.
+  - **Permisos:** `POST_NOTIFICATIONS` en el manifiesto. Desde Android 13 se pide al abrir Inicio
+    del relator (`PedirPermisoNotificaciones` en `InicioRelatorPantalla.kt`); en Android 12 o menos
+    ese permiso no existe y no se revisa. Si se rechaza, la app funciona igual, sin recordatorios.
+    Alarmas exactas: `SCHEDULE_EXACT_ALARM` (con `maxSdkVersion="32"`, para Android 12) y
+    `USE_EXACT_ALARM` (Android 13 o superior).
+  - **Pedir el permiso de alarmas exactas:** en Android 12 o superior, si
+    `canScheduleExactAlarms()` es false, Inicio del relator muestra un diálogo
+    (`PedirPermisoAlarmasExactas` en `InicioRelatorPantalla.kt`) que explica para qué sirve
+    ("para avisarte 15 minutos antes de tu reserva"). «Permitir» abre los ajustes; «Ahora no»
+    deja el respaldo inexacto. Se pregunta una vez mientras Inicio siga en el historial.
+  - **Al volver de los ajustes:** `MainActivity.onResume` compara con el valor anterior; si el
+    permiso pasó de no concedido a concedido, llama `sincronizadorRecordatorios.reprogramarTodo()`
+    y las alarmas inexactas se reemplazan por exactas.
+  - **Límites:** las reservas se cargan cuando una pantalla llama a `refrescar()`, así que una
+    reserva creada desde la web se programa la próxima vez que se abre la app. Sin permiso de
+    alarma exacta, Android puede atrasar el aviso hasta una hora.
+  - **Reinicio del teléfono:** las alarmas se pierden al reiniciar. No hay un receiver de
+    `BOOT_COMPLETED` a propósito: el sincronizador las vuelve a programar al abrir la app.
 
 ### Decisiones tomadas
 
@@ -285,7 +340,7 @@ Todo esto ya existe. Úsalo, no lo dupliques.
   Reserva, EstadoReserva, y funciones de formato (formatearHora, formatearFechaLarga, formatearFechaCorta).
   `Usuario` y `Rol` están en `model/` (son del login).
 - **Reglas de reserva ya programadas** en `Reserva`: checkInHabilitado, sinCheckIn, sePuedeCancelar,
-  mostrarRecordatorio y ocupa(bloque). Los bloques de una sala: `sala.bloques(horarioGeneral)`.
+  mostrarRecordatorio, necesitaRecordatorio y ocupa(bloque). Los bloques de una sala: `sala.bloques(horarioGeneral)`.
   No repitas esas reglas dentro de un ViewModel: llama a estas funciones.
 - **Repositorios**: las interfaces están en `data/repository/Repositorios.kt` (RepositorioSalas,
   RepositorioReservas, RepositorioHorario, RepositorioPerfil, RepositorioAutenticacion). Las

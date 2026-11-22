@@ -31,6 +31,14 @@ import cl.duoc.reservasalas.app.data.remote.FeriadosApi
 import cl.duoc.reservasalas.app.data.repository.RepositorioFeriados
 import cl.duoc.reservasalas.app.data.repository.RepositorioFeriadosRemoto
 import cl.duoc.reservasalas.app.data.repository.RepositorioPerfilRemoto
+import cl.duoc.reservasalas.app.notificaciones.ProgramadorRecordatorios
+import cl.duoc.reservasalas.app.notificaciones.ProgramadorRecordatoriosAlarmas
+import cl.duoc.reservasalas.app.data.local.RecordatoriosDataStore
+import cl.duoc.reservasalas.app.data.local.recordatoriosDataStore
+import cl.duoc.reservasalas.app.notificaciones.SincronizadorRecordatorios
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * Inyección de dependencias manual: aquí se crea cada objeto una sola vez
@@ -120,4 +128,24 @@ class AppContainer(context: Context) {
 
     // Feriados nacionales y de la región de Valparaíso, guardados en memoria por año.
     val repositorioFeriados: RepositorioFeriados = RepositorioFeriadosRemoto(feriadosApi)
+
+    // Recordatorio local 15 minutos antes de cada reserva (AlarmManager).
+    // El DataStore "recordatorios" guarda los ids programados, para poder borrarlos todos.
+    // limitedParallelism(1): una tarea a la vez, así los ids se guardan en el orden pedido.
+    val programadorRecordatorios: ProgramadorRecordatorios = ProgramadorRecordatoriosAlarmas(
+        context,
+        repositorioSalas,
+        RecordatoriosDataStore(context.recordatoriosDataStore),
+        CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
+    )
+    val sincronizadorRecordatorios = SincronizadorRecordatorios(
+        repositorioReservas.reservas,
+        sesionDataStore.sesion,
+        programadorRecordatorios,
+        reloj
+    )
+
+    // Corrutinas que viven mientras la app esté abierta (no dependen de una pantalla).
+    // SupervisorJob: si una falla, no detiene a las demás.
+    val scopeApp = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 }

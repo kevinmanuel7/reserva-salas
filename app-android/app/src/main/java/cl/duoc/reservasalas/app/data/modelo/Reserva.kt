@@ -60,6 +60,14 @@ data class Reserva(
             ahora.isBefore(inicio) &&
             !ahora.isBefore(inicio.minusMinutes(MINUTOS_RECORDATORIO))
 
+    /** Momento del aviso local: 15 minutos antes del inicio. */
+    val momentoRecordatorio: LocalDateTime
+        get() = inicio.minusMinutes(MINUTOS_RECORDATORIO)
+
+    /** Hay que programar el aviso local: sigue Reservada y el momento del aviso todavía no llega. */
+    fun necesitaRecordatorio(ahora: LocalDateTime): Boolean =
+        estado == EstadoReserva.RESERVADA && momentoRecordatorio.isAfter(ahora)
+
     /** true si esta reserva ocupa el [bloque]. Las canceladas no ocupan; "No presentado" sí (la sala no se libera). */
     fun ocupa(bloque: Bloque): Boolean =
         estado != EstadoReserva.CANCELADA &&

@@ -19,6 +19,7 @@ import cl.duoc.reservasalas.app.data.repository.RepositorioPerfil
 import cl.duoc.reservasalas.app.data.repository.RepositorioReservas
 import cl.duoc.reservasalas.app.model.PerfilUsuario
 import cl.duoc.reservasalas.app.model.Usuario
+import cl.duoc.reservasalas.app.notificaciones.ProgramadorRecordatorios
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,7 +74,8 @@ class PerfilViewModel(
     private val reloj: Reloj,
     private val repositorioPerfil: RepositorioPerfil,
     private val perfilDataStore: PerfilDataStore,
-    private val almacenFoto: AlmacenFotoPerfil
+    private val almacenFoto: AlmacenFotoPerfil,
+    private val programadorRecordatorios: ProgramadorRecordatorios
 ) : ViewModel() {
 
     // "_formulario" es privado y se puede modificar; "formulario" es la versión de solo
@@ -321,9 +323,13 @@ class PerfilViewModel(
 
     // ---------- Sesión ----------
 
-    /** Borra la sesión del teléfono y, cuando termina, avisa con [alTerminar]. La foto se conserva. */
+    /**
+     * Borra los recordatorios y la sesión del teléfono y, cuando termina, avisa con [alTerminar].
+     * La foto se conserva.
+     */
     fun cerrarSesion(alTerminar: () -> Unit) {
         viewModelScope.launch {
+            programadorRecordatorios.cancelarTodos()
             sesionDataStore.borrarSesion()
             alTerminar()
         }
@@ -379,7 +385,8 @@ class PerfilViewModel(
                     contenedor.reloj,
                     contenedor.repositorioPerfil,
                     contenedor.perfilDataStore,
-                    contenedor.almacenFotoPerfil
+                    contenedor.almacenFotoPerfil,
+                    contenedor.programadorRecordatorios
                 )
             }
         }

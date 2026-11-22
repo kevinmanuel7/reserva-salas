@@ -4,6 +4,14 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Recordatorio 15 minutos antes de cada reserva. Desde Android 13 se pide al usuario. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Alarma exacta a la hora del recordatorio. Android 12: SCHEDULE_EXACT_ALARM;
+         Android 13 o superior: USE_EXACT_ALARM (se concede al instalar). -->
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -29,6 +37,10 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- Muestra el recordatorio cuando suena su alarma. Solo lo llama la propia app. -->
+        <receiver
+            android:name=".notificaciones.RecordatorioReceiver"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

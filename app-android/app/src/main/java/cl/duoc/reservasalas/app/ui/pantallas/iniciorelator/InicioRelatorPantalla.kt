@@ -1,6 +1,12 @@
 
 package cl.duoc.reservasalas.app.ui.pantallas.iniciorelator
 
+import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,9 +16,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -20,6 +33,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cl.duoc.reservasalas.app.notificaciones.intentPermisoAlarmasExactas
+import cl.duoc.reservasalas.app.notificaciones.puedeProgramarAlarmasExactas
 import cl.duoc.reservasalas.app.ui.componentes.TarjetaFeriado
 import cl.duoc.reservasalas.app.ui.navegacion.Rutas
 import java.time.LocalDate
@@ -35,6 +50,75 @@ private val TextoSecundario = Color(0xFF605D5A)
 private val Borde = Color(0xFFDADADA)
 private val FormaTarjeta = RoundedCornerShape(14.dp)
 
+/**
+ * Pide el permiso de notificaciones (recordatorios de reservas) al abrir Inicio del relator.
+ * Solo desde Android 13, y solo si todavía no está concedido. No dibuja nada.
+ * Si el usuario lo rechaza, la app sigue igual, pero sin recordatorios.
+ */
+@Composable
+private fun PedirPermisoNotificaciones() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+    val contexto = LocalContext.current
+    // El resultado no se usa: con o sin permiso, la pantalla funciona igual.
+    val lanzadorPermiso = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+
+    // LaunchedEffect(Unit): se ejecuta una vez cada vez que la pantalla aparece.
+    LaunchedEffect(Unit) {
+        val permitido = ContextCompat.checkSelfPermission(
+            contexto,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!permitido) {
+            lanzadorPermiso.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+}
+
+/**
+ * Explica y pide el permiso de alarmas exactas (recordatorio a la hora justa).
+ * Solo desde Android 12, y solo si todavía no está concedido; se pregunta una vez.
+ * "Permitir" abre los ajustes del teléfono; al volver, MainActivity reprograma los avisos.
+ * Si el usuario no lo da, los avisos siguen llegando, pero pueden atrasarse.
+ */
+@Composable
+private fun PedirPermisoAlarmasExactas() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+
+    val contexto = LocalContext.current
+    // rememberSaveable: recuerda que ya se preguntó aunque se vaya y vuelva a Inicio.
+    var yaPregunto by rememberSaveable { mutableStateOf(false) }
+    if (yaPregunto || puedeProgramarAlarmasExactas(contexto)) return
+
+    // TODO: reemplazar por un componente de diálogo compartido de ui/componentes/
+    AlertDialog(
+        onDismissRequest = { yaPregunto = true },
+        title = { Text("Recordatorios a la hora exacta") },
+        text = {
+            Text(
+                "Para avisarte 15 minutos antes de tu reserva, la app necesita permiso para " +
+                    "usar alarmas exactas. Si no lo das, el aviso puede llegar con atraso."
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                yaPregunto = true
+                try {
+                    contexto.startActivity(intentPermisoAlarmasExactas(contexto))
+                } catch (e: ActivityNotFoundException) {
+                    // El teléfono no tiene esa pantalla de ajustes: se sigue con el aviso inexacto.
+                }
+            }) { Text("Permitir") }
+        },
+        dismissButton = {
+            TextButton(onClick = { yaPregunto = true }) { Text("Ahora no") }
+        }
+    )
+}
+
 @Composable
 fun InicioRelatorPantalla(
     navegar: (String) -> Unit,
@@ -45,6 +129,9 @@ fun InicioRelatorPantalla(
     )
 
     val estado = viewModel.uiState.collectAsState().value
+
+    PedirPermisoNotificaciones()
+    PedirPermisoAlarmasExactas()
 
     val formatoFecha = DateTimeFormatter.ofPattern(
         "EEEE d 'de' MMMM",

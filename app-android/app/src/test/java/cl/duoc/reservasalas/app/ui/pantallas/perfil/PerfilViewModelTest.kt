@@ -12,7 +12,9 @@ import cl.duoc.reservasalas.app.data.falso.RepositorioReservasFalso
 import cl.duoc.reservasalas.app.data.local.AlmacenFotoPerfil
 import cl.duoc.reservasalas.app.data.local.PerfilDataStore
 import cl.duoc.reservasalas.app.data.local.SesionDataStore
+import cl.duoc.reservasalas.app.data.modelo.Reserva
 import cl.duoc.reservasalas.app.data.repository.RepositorioPerfil
+import cl.duoc.reservasalas.app.notificaciones.ProgramadorRecordatorios
 import cl.duoc.reservasalas.app.model.PerfilUsuario
 import cl.duoc.reservasalas.app.model.Rol
 import cl.duoc.reservasalas.app.model.Usuario
@@ -87,6 +89,13 @@ class PerfilViewModelTest {
     }
 
     /** La foto no se prueba aquí: este almacén no toca archivos. */
+    /** Estas pruebas no revisan recordatorios: el programador no hace nada. */
+    private object ProgramadorRecordatoriosVacio : ProgramadorRecordatorios {
+        override fun programar(reserva: Reserva) {}
+        override fun cancelar(idReserva: Int) {}
+        override fun cancelarTodos() {}
+    }
+
     private class AlmacenFotoFalso : AlmacenFotoPerfil {
         override fun crearArchivoCamara(): Uri = TODO("No se usa en estas pruebas")
         override suspend fun guardar(origen: Uri, idUsuario: Int): String = TODO("No se usa en estas pruebas")
@@ -128,7 +137,8 @@ class PerfilViewModelTest {
                     reloj = reloj,
                     repositorioPerfil = repositorio,
                     perfilDataStore = PerfilDataStore(perfil),
-                    almacenFoto = AlmacenFotoFalso()
+                    almacenFoto = AlmacenFotoFalso(),
+                    programadorRecordatorios = ProgramadorRecordatoriosVacio
                 )
             }
         }
