@@ -39,6 +39,18 @@ android {
         buildConfigField("String", "URL_API_FERIADOS", "\"https://date.nager.at/api/v3/\"")
     }
 
+    signingConfigs {
+        create("entrega") {
+            // Llave creada SOLO para este proyecto académico. La pauta pide dejarla funcional
+            // en el repositorio junto a su configuración. En un proyecto real, la llave y sus
+            // contraseñas irían fuera de Git (por ejemplo, en variables de entorno).
+            storeFile = file("../llave/reserva-salas.jks")
+            storePassword = "proyectoapp"
+            keyAlias = "reserva-salas"
+            keyPassword = "proyectoapp"
+        }
+    }
+
     buildTypes {
         // Cobertura de las pruebas unitarias con JaCoCo (viene con el plugin de Android, no es un
         // plugin nuevo). Crea la tarea createDebugUnitTestCoverageReport. Ver docs/pruebas.md.
@@ -46,6 +58,7 @@ android {
             enableUnitTestCoverage = true
         }
         release {
+            signingConfig = signingConfigs.getByName("entrega")
             optimization {
                 enable = false
             }
