@@ -78,7 +78,7 @@ Reglas de MVVM:
 - Las URL base no se escriben fijas dentro del código: se definen como
   `buildConfigField` en `app/build.gradle.kts` (`URL_MS_USUARIOS`, `URL_MS_SALAS`,
   `URL_MS_RESERVAS`). En desarrollo apuntan a `localhost`; en la entrega las tres
-  apuntan a `http://34.194.115.43/api/v1/` (Nginx en AWS).
+  apuntan a `http://54.204.140.199/api/v1/` (Nginx en AWS).
 - El dispositivo llega al backend del computador con `adb reverse`, que redirige un
   puerto del dispositivo al mismo puerto del computador:
   `adb reverse tcp:8081 tcp:8081`.
@@ -246,7 +246,7 @@ Terminó la etapa maqueta: ahora cada parte de la app se conecta al backend real
 - Las URL base se definen en `app/build.gradle.kts` como BuildConfig: `URL_MS_USUARIOS`,
   `URL_MS_SALAS` y `URL_MS_RESERVAS`. En desarrollo apuntan a `localhost` con
   `adb reverse` (ver sección 4); en la entrega las tres apuntan a
-  `http://34.194.115.43/api/v1/` (Nginx en AWS).
+  `http://54.204.140.199/api/v1/` (Nginx en AWS).
 - El token se agrega a cada petición con `data/remote/TokenInterceptor.kt`. No agregar
   el encabezado `Authorization` a mano en las interfaces de Retrofit.
 

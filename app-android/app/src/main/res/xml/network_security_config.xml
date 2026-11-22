@@ -4,13 +4,13 @@
     - Por defecto se prohíbe http sin cifrar. Se escribe explícitamente porque en
       Android 8.0 y 8.1 (nuestro minSdk 26) http está permitido si no se dice nada.
     - Se permite http hacia localhost (desarrollo con adb reverse) y hacia el
-      servidor de AWS (34.194.115.43), que todavía no tiene https.
+      servidor de AWS (54.204.140.199), que todavía no tiene https.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
 
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">localhost</domain>
-        <domain includeSubdomains="false">34.194.115.43</domain>
+        <domain includeSubdomains="false">54.204.140.199</domain>
     </domain-config>
 </network-security-config>

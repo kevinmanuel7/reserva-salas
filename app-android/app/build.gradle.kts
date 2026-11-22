@@ -14,7 +14,7 @@ val propiedadesLocales = Properties().apply {
     if (archivo.exists()) archivo.inputStream().use { load(it) }
 }
 val usarBackendLocal = propiedadesLocales.getProperty("backend.local") == "true"
-val urlAws = "http://34.194.115.43/api/v1/"
+val urlAws = "http://54.204.140.199/api/v1/"
 
 android {
     namespace = "cl.duoc.reservasalas.app"

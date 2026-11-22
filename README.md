@@ -103,7 +103,7 @@ Las pantallas están en
 - 3 microservicios **Spring Boot** (Java 21), cada uno con su base de datos **MySQL**.
 - Seguridad con **JWT**: ms-usuarios entrega el token y los otros dos lo validan.
 - Publicados en **AWS EC2** detrás de **Nginx**, en una sola dirección:
-  `http://34.194.115.43/api/v1/`.
+  `http://54.204.140.199/api/v1/`.
 
 ```mermaid
 flowchart LR
@@ -323,7 +323,7 @@ Llave `.jks`:
   validaría en el servidor.
 - **Servidor sin https.** El servidor de AWS usa `http`. Android bloquea `http` por defecto, por eso
   [`network_security_config.xml`](app-android/app/src/main/res/xml/network_security_config.xml) lo
-  permite **solo** para la IP `34.194.115.43`; cualquier otra dirección sigue exigiendo https.
+  permite **solo** para la IP `54.204.140.199`; cualquier otra dirección sigue exigiendo https.
 - **Recordatorios con `setAlarmClock`.** Algunos teléfonos (por ejemplo, con ColorOS) retrasan o
   descartan las alarmas normales para ahorrar batería. `setAlarmClock` es el tipo de alarma que el
   sistema respeta siempre, así el recordatorio llega a tiempo.
