@@ -1,8 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
+
+// Interruptor de desarrollo: con "backend.local=true" en local.properties (que no se
+// sube a GitHub) la app usa los microservicios del PC con adb reverse.
+// Sin él, usa el servidor de AWS: así queda el repositorio y el APK que se entrega.
+val propiedadesLocales = Properties().apply {
+    val archivo = rootProject.file("local.properties")
+    if (archivo.exists()) archivo.inputStream().use { load(it) }
+}
+val usarBackendLocal = propiedadesLocales.getProperty("backend.local") == "true"
+val urlAws = "http://34.194.115.43/api/v1/"
 
 android {
     namespace = "cl.duoc.reservasalas.app"
@@ -20,9 +32,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // URL base de cada microservicio.
-        buildConfigField("String", "URL_MS_USUARIOS", "\"http://localhost:8081/api/v1/\"")
-        buildConfigField("String", "URL_MS_SALAS", "\"http://localhost:8082/api/v1/\"")
-        buildConfigField("String", "URL_MS_RESERVAS", "\"http://localhost:8083/api/v1/\"")
+        buildConfigField("String", "URL_MS_USUARIOS", "\"${if (usarBackendLocal) "http://localhost:8081/api/v1/" else urlAws}\"")
+        buildConfigField("String", "URL_MS_SALAS", "\"${if (usarBackendLocal) "http://localhost:8082/api/v1/" else urlAws}\"")
+        buildConfigField("String", "URL_MS_RESERVAS", "\"${if (usarBackendLocal) "http://localhost:8083/api/v1/" else urlAws}\"")
         // API externa de feriados de Chile (Nager.Date). Pública: no lleva token ni clave.
         buildConfigField("String", "URL_API_FERIADOS", "\"https://date.nager.at/api/v3/\"")
     }
