@@ -186,6 +186,7 @@ Ejecutar dentro de `app-android/` (Windows, PowerShell).
 |--------------------------------------|---------------------------------|
 | Compilar la app                      | `.\gradlew.bat assembleDebug`   |
 | Ejecutar las pruebas unitarias       | `.\gradlew.bat test`            |
+| Cobertura de la lógica (≥ 80 %)      | `.\gradlew.bat testDebugUnitTest createDebugUnitTestCoverageReport` y luego `.\cobertura-logica.ps1` (ver `docs/pruebas.md`) |
 | Instalar en el teléfono conectado    | `.\gradlew.bat installDebug`    |
 
 Antes de dar una tarea por terminada, `.\gradlew.bat assembleDebug` y

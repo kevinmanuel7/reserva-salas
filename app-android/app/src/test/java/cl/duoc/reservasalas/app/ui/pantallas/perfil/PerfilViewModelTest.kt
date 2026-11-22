@@ -3,6 +3,8 @@ package cl.duoc.reservasalas.app.ui.pantallas.perfil
 import android.net.Uri
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import cl.duoc.reservasalas.app.cancelarYEsperar
+import cl.duoc.reservasalas.app.cerrarYEsperar
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
@@ -147,8 +149,10 @@ class PerfilViewModelTest {
 
     @After
     fun limpiar() {
-        almacenViewModels.clear()
-        scopeDataStore.cancel()
+        // Primero se esperan las corrutinas del ViewModel y del DataStore; recién después se
+        // quita el hilo principal de prueba (ver AyudasPrueba.kt).
+        almacenViewModels.cerrarYEsperar(viewModel)
+        scopeDataStore.cancelarYEsperar()
         Dispatchers.resetMain()
     }
 

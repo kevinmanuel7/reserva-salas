@@ -1,6 +1,10 @@
 package cl.duoc.reservasalas.app.viewmodel
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.lifecycle.ViewModelStore
+import cl.duoc.reservasalas.app.cancelarYEsperar
+import cl.duoc.reservasalas.app.cerrarYEsperar
+import cl.duoc.reservasalas.app.crear
 import cl.duoc.reservasalas.app.data.local.SesionDataStore
 import cl.duoc.reservasalas.app.data.remote.UsuariosApi
 import cl.duoc.reservasalas.app.data.remote.dto.ActualizarPerfilPeticionDto
@@ -70,6 +74,7 @@ class LoginViewModelTest {
     val carpetaTemporal = TemporaryFolder()
 
     private val scopeDataStore = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val almacenViewModels = ViewModelStore()
 
     private lateinit var api: UsuariosApiFalsa
     private lateinit var viewModel: LoginViewModel
@@ -82,12 +87,18 @@ class LoginViewModelTest {
             File(carpetaTemporal.root, "sesion.preferences_pb")
         }
         val json = Json { ignoreUnknownKeys = true }
-        viewModel = LoginViewModel(AuthRepository(api, SesionDataStore(dataStore), json))
+        // Dentro de un ViewModelStore para poder cerrarlo en limpiar() (ver AyudasPrueba.kt).
+        viewModel = almacenViewModels.crear {
+            LoginViewModel(AuthRepository(api, SesionDataStore(dataStore), json))
+        }
     }
 
     @After
     fun limpiar() {
-        scopeDataStore.cancel()
+        // Primero se esperan las corrutinas del ViewModel y del DataStore; recién después se
+        // quita el hilo principal de prueba.
+        almacenViewModels.cerrarYEsperar(viewModel)
+        scopeDataStore.cancelarYEsperar()
         Dispatchers.resetMain()
     }
 

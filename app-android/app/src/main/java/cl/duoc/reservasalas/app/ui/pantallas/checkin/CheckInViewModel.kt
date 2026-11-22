@@ -72,7 +72,8 @@ class CheckInViewModel(
             return
         }
 
-        val codigoLeido = textoLeido.trim().removePrefix(PREFIJO_QR).uppercase()
+        // Primero a mayúsculas y después se quita el prefijo: así "sala:s-101" también se acepta.
+        val codigoLeido = textoLeido.trim().uppercase().removePrefix(PREFIJO_QR)
         if (codigoLeido != reserva.codigoSala) {
             mostrarError("Este código es de la sala $codigoLeido. Tu reserva es en ${reserva.codigoSala}.")
             return

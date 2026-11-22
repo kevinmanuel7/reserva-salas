@@ -1,6 +1,7 @@
 package cl.duoc.reservasalas.app.data.repository
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import cl.duoc.reservasalas.app.cancelarYEsperar
 import cl.duoc.reservasalas.app.data.local.SesionDataStore
 import cl.duoc.reservasalas.app.data.remote.UsuariosApi
 import cl.duoc.reservasalas.app.data.remote.dto.ActualizarPerfilPeticionDto
@@ -79,7 +80,8 @@ class AuthRepositoryTest {
 
     @After
     fun limpiar() {
-        scopeDataStore.cancel()
+        // Espera a que el DataStore termine antes de que TemporaryFolder borre la carpeta.
+        scopeDataStore.cancelarYEsperar()
     }
 
     @Test

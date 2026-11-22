@@ -28,6 +28,11 @@ android {
     }
 
     buildTypes {
+        // Cobertura de las pruebas unitarias con JaCoCo (viene con el plugin de Android, no es un
+        // plugin nuevo). Crea la tarea createDebugUnitTestCoverageReport. Ver docs/pruebas.md.
+        debug {
+            enableUnitTestCoverage = true
+        }
         release {
             optimization {
                 enable = false
@@ -63,6 +68,8 @@ dependencies {
     testImplementation(libs.junit)
     // Solo para pruebas: reemplaza el hilo principal de Android en las pruebas del ViewModel.
     testImplementation(libs.kotlinx.coroutines.test)
+    // Solo para pruebas: simula las APIs de Retrofit en las pruebas de los repositorios. No entra al APK.
+    testImplementation(libs.mockk)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
