@@ -25,3 +25,8 @@ application-local.properties
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Entrega del ramo (la pauta exige subir la llave y el APK firmado).
+# Llave creada SOLO para este proyecto académico: en producción nunca iría al repositorio.
+!app-android/llave/reserva-salas.jks
+!app-android/apk/reserva-salas.apk
